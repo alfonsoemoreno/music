@@ -5,9 +5,9 @@ import org.json.JSONObject
 import java.util.UUID
 
 object CloudClient {
-    fun activate(context: Context, serverUrl: String, enrollmentCode: String, name: String): String {
+    fun activate(context: Context, enrollmentCode: String, name: String): String {
         val preferences = BridgePreferences(context)
-        val response = HttpJson.post("${serverUrl.trimEnd('/')}/api/bridges/activate", JSONObject()
+        val response = HttpJson.post("${MusicCloud.url}/api/bridges/activate", JSONObject()
             .put("enrollmentCode", enrollmentCode)
             .put("installationId", preferences.installationId())
             .put("name", name)

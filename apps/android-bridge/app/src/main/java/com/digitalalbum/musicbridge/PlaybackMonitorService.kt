@@ -70,8 +70,12 @@ class PlaybackMonitorService : Service() {
         .build()
 
     private fun updateStatus(text: String) {
-        if (statusText == text) return
+        if (statusText == text) {
+            BridgePreferences(this).setRuntimeStatus(text)
+            return
+        }
         statusText = text
+        BridgePreferences(this).setRuntimeStatus(text)
         getSystemService(NotificationManager::class.java).notify(notificationId, notification())
     }
 

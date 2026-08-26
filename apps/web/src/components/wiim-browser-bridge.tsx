@@ -17,6 +17,6 @@ export const WiiMBrowserBridge = (): React.JSX.Element => {
     setMessage("");
   };
 
-  if (enrollment) return <section className="local-wiim-bridge bridge-enrollment"><p><strong>Music Bridge</strong><br />En Android, ingresa esta dirección y el PIN de seis dígitos antes de {new Date(enrollment.expiresAt).toLocaleTimeString()}.</p><code>{enrollment.serverUrl}</code><code>{enrollment.code}</code><button type="button" onClick={() => { setEnrollment(undefined); void createEnrollment(); }}>Generar otro PIN</button></section>;
+  if (enrollment) return <section className="local-wiim-bridge bridge-enrollment"><p><strong>Music Bridge</strong><br />En Android, ingresa este PIN de seis dígitos antes de {new Date(enrollment.expiresAt).toLocaleTimeString()}. La app ya conoce esta dirección de Music.</p><code>{enrollment.code}</code><button type="button" onClick={() => { setEnrollment(undefined); void createEnrollment(); }}>Generar otro PIN</button></section>;
   return <section className="local-wiim-bridge"><button type="button" onClick={() => void createEnrollment()}>Conectar Android</button>{message ? <p>{message}</p> : null}</section>;
 };

@@ -5,6 +5,8 @@ import android.app.Activity
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.text.InputType
 import android.view.Gravity
 import android.view.View
@@ -16,11 +18,17 @@ import java.util.concurrent.Executors
 
 class MainActivity : Activity() {
     private val worker = Executors.newSingleThreadExecutor()
-    private lateinit var serverUrl: EditText
     private lateinit var enrollmentCode: EditText
     private lateinit var bridgeName: EditText
     private lateinit var status: TextView
     private lateinit var connect: Button
+    private val statusHandler = Handler(Looper.getMainLooper())
+    private val refreshStatus = object : Runnable {
+        override fun run() {
+            BridgePreferences(this@MainActivity).runtimeStatus()?.let { status.text = it }
+            statusHandler.postDelayed(this, 1_000)
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -33,18 +41,16 @@ class MainActivity : Activity() {
         }
         val title = TextView(this).apply { text = "Music Bridge"; textSize = 30f }
         val description = TextView(this).apply {
-            text = "Este teléfono descubre el WiiM en tu Wi‑Fi y envía los cambios de disco a Music. No reproduce música ni abre puertos en tu red."
+            text = "Este teléfono descubre el WiiM en tu Wi‑Fi y envía los cambios de disco a Music. Se conecta automáticamente a musicwiim.vercel.app."
             textSize = 16f
             setPadding(0, padding / 2, 0, padding)
         }
-        serverUrl = field("Dirección de tu Music en Vercel", InputType.TYPE_TEXT_VARIATION_URI)
         enrollmentCode = field("PIN de 6 dígitos mostrado en Music", InputType.TYPE_CLASS_NUMBER).apply { maxEms = 6 }
         bridgeName = field("Nombre del puente", InputType.TYPE_CLASS_TEXT).apply { setText("Android Music Bridge") }
         connect = Button(this).apply { text = "Emparejar y comenzar" }
         status = TextView(this).apply { textSize = 15f; setPadding(0, padding, 0, 0) }
         layout.addView(title)
         layout.addView(description)
-        layout.addView(serverUrl)
         layout.addView(enrollmentCode)
         layout.addView(bridgeName)
         layout.addView(connect)
@@ -52,10 +58,9 @@ class MainActivity : Activity() {
         setContentView(layout)
 
         BridgePreferences(this).configuration()?.let { config ->
-            serverUrl.setText(config.serverUrl)
             enrollmentCode.visibility = View.GONE
             connect.text = "Iniciar Music Bridge"
-            status.text = "Este teléfono ya está emparejado. Déjalo conectado a la misma Wi‑Fi que el WiiM."
+            status.text = BridgePreferences(this).runtimeStatus() ?: "Este teléfono ya está emparejado. Déjalo conectado a la misma Wi‑Fi que el WiiM."
         }
         connect.setOnClickListener { begin() }
     }
@@ -78,19 +83,18 @@ class MainActivity : Activity() {
             status.text = "Music Bridge está activo. Android mostrará una notificación persistente mientras funciona."
             return
         }
-        val url = serverUrl.text.toString().trim().trimEnd('/')
         val code = enrollmentCode.text.toString().trim()
         val name = bridgeName.text.toString().trim().ifBlank { "Android Music Bridge" }
-        if (!url.startsWith("https://") || !code.matches(Regex("\\d{6}"))) {
-            status.text = "Ingresa la dirección HTTPS de Music y el PIN de seis dígitos."
+        if (!code.matches(Regex("\\d{6}"))) {
+            status.text = "Ingresa el PIN de seis dígitos mostrado en Music."
             return
         }
         connect.isEnabled = false
         status.text = "Emparejando de forma segura…"
         worker.execute {
             try {
-                val bridgeId = CloudClient.activate(this, url, code, name)
-                BridgePreferences(this).save(url, bridgeId)
+                val bridgeId = CloudClient.activate(this, code, name)
+                BridgePreferences(this).save(bridgeId)
                 PlaybackMonitorService.start(this)
                 runOnUiThread {
                     enrollmentCode.visibility = View.GONE
@@ -125,6 +129,17 @@ class MainActivity : Activity() {
 
     override fun onDestroy() {
         worker.shutdownNow()
+        statusHandler.removeCallbacks(refreshStatus)
         super.onDestroy()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        statusHandler.post(refreshStatus)
+    }
+
+    override fun onPause() {
+        statusHandler.removeCallbacks(refreshStatus)
+        super.onPause()
     }
 }

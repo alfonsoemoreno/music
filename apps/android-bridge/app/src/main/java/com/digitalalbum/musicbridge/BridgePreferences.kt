@@ -11,7 +11,9 @@ class BridgePreferences(context: Context) {
     fun configuration(): BridgeConfig? {
         val server = storage.getString("server_url", null) ?: return null
         val bridge = storage.getString("bridge_id", null) ?: return null
-        return BridgeConfig(server, bridge, installationId())
+        return BridgeConfig(MusicCloud.url, bridge, installationId())
     }
-    fun save(serverUrl: String, bridgeId: String) = storage.edit().putString("server_url", serverUrl.trimEnd('/')).putString("bridge_id", bridgeId).apply()
+    fun save(bridgeId: String) = storage.edit().putString("server_url", MusicCloud.url).putString("bridge_id", bridgeId).apply()
+    fun runtimeStatus(): String? = storage.getString("runtime_status", null)
+    fun setRuntimeStatus(value: String) = storage.edit().putString("runtime_status", value).apply()
 }
