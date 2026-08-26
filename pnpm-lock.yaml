@@ -91,12 +91,6 @@ importers:
         specifier: ^8.16.0
         version: 8.23.0
 
-  apps/wiim-agent:
-    dependencies:
-      '@music/domain':
-        specifier: workspace:*
-        version: link:../../packages/domain
-
   packages/domain: {}
 
   packages/metadata:

@@ -66,6 +66,7 @@ export const WiiMBrowserBridge = (): React.JSX.Element => {
   const [host, setHost] = useState("");
   const [accessCode, setAccessCode] = useState("");
   const [message, setMessage] = useState("Conecta tu WiiM mientras esta pestaña permanezca abierta.");
+  const [showSetup, setShowSetup] = useState(false);
   const activeHost = useRef<string | undefined>(undefined);
   const lastFingerprint = useRef<string | undefined>(undefined);
   const timer = useRef<number | undefined>(undefined);
@@ -76,11 +77,13 @@ export const WiiMBrowserBridge = (): React.JSX.Element => {
     activeHost.current = undefined;
     lastFingerprint.current = undefined;
     setStatus("idle");
+    setShowSetup(false);
     setMessage("La sincronización local está detenida.");
   };
 
   const start = async (requestedHost?: string): Promise<void> => {
     setStatus("connecting");
+    setShowSetup(true);
     setMessage("Buscando el WiiM en tu red local…");
     const supplied = requestedHost ? [requestedHost] : candidates;
     let selected: string | undefined;
@@ -144,7 +147,7 @@ export const WiiMBrowserBridge = (): React.JSX.Element => {
   }, []);
 
   return <section className={`local-wiim-bridge ${status}`} aria-live="polite">
-    <div><p className="section-label">WiiM local</p><p>{message}</p></div>
-    {status === "connected" || status === "connecting" ? <button type="button" onClick={stop}>Desconectar</button> : <div className="bridge-controls"><input aria-label="Dirección local del WiiM" value={host} onChange={(event) => setHost(event.target.value)} placeholder="WiiM local o 192.168.1.81" /><input aria-label="Código de acceso" value={accessCode} onChange={(event) => setAccessCode(event.target.value)} placeholder="Código de acceso" type="password" /><button type="button" onClick={() => void connect()}>Conectar WiiM</button></div>}
+    {status === "connected" ? <p>● WiiM conectado en {activeHost.current}</p> : null}
+    {showSetup ? <div className="bridge-setup"><p>{message}</p><div className="bridge-controls"><input aria-label="Dirección local del WiiM" value={host} onChange={(event) => setHost(event.target.value)} placeholder="WiiM local o 192.168.1.81" /><input aria-label="Código de acceso" value={accessCode} onChange={(event) => setAccessCode(event.target.value)} placeholder="Código de acceso" type="password" /><button type="button" onClick={() => void connect()}>Guardar y conectar</button><button type="button" onClick={() => setShowSetup(false)}>Cancelar</button></div></div> : status !== "connected" ? <button type="button" onClick={() => setShowSetup(true)}>Conectar WiiM</button> : <button type="button" onClick={stop}>Desconectar</button>}
   </section>;
 };

@@ -4,10 +4,8 @@
   "packageManager": "pnpm@10.22.0",
   "engines": { "node": ">=24 <25", "pnpm": ">=10" },
   "scripts": {
-    "dev": "pnpm --parallel --filter @music/web --filter @music/wiim-agent dev",
+    "dev": "pnpm --filter @music/web dev",
     "web:dev": "pnpm --filter @music/web dev",
-    "agent:dev": "pnpm --filter @music/wiim-agent dev",
-    "agent:start": "pnpm --filter @music/wiim-agent start",
     "build": "pnpm -r build",
     "build:verify": "NEXT_DIST_DIR=.next-verify pnpm --filter @music/web build",
     "test": "pnpm -r test",

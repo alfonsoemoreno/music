@@ -4,7 +4,7 @@ Una compañía visual para el álbum que se está reproduciendo en un WiiM. No r
 
 ## Estado del MVP
 
-El repositorio contiene el primer vertical: el agente consulta un WiiM, normaliza estado, evita eventos por cambios de progreso, los envía por HTTPS a `POST /api/agent/playback` y la web consulta `GET /api/playback/now` cada dos segundos. La interfaz está deliberadamente centrada en la portada y el álbum, no en controles de reproducción.
+El repositorio contiene una única aplicación Next.js. Mientras la pestaña está abierta, el navegador consulta el WiiM de su propia red local, publica sólo cambios relevantes y la web consulta `GET /api/playback/now` cada dos segundos. La interfaz está deliberadamente centrada en la portada y el álbum, no en controles de reproducción.
 
 Cuando existe `DATABASE_URL`, `now playing` se persiste en Neon y funciona entre invocaciones Vercel. Sin esa variable, el desarrollo local usa una memoria global de un único proceso Next.js; no es persistente ni adecuada para despliegue.
 
@@ -14,7 +14,7 @@ WiiM publica una [API HTTP oficial](https://www.wiimhome.com/pdf/HTTP%20API%20fo
 
 Limitación importante: la respuesta HTTP publicada no garantiza campos de artista, álbum, track o artwork. Por ello el normalizador acepta los campos que algunos firmwares exponen, pero el siguiente hito debe capturar una respuesta real del Ultra con Qobuz/TIDAL y añadir el adaptador UPnP `AVTransport` para la metadata que exista. No se presupone que todos los proveedores expongan los mismos campos.
 
-Validación real: WiiM Ultra con firmware `Linkplay.5.2.826052` entrega Qobuz en `vendor` y los campos `Title`, `Artist` y `Album` como texto hexadecimal UTF-8. El agente los decodifica; este comportamiento se cubre con un test de regresión.
+Validación real: WiiM Ultra con firmware `Linkplay.5.2.826052` entrega Qobuz en `vendor` y los campos `Title`, `Artist` y `Album` como texto hexadecimal UTF-8. La web los decodifica antes de enviarlos al cloud.
 
 ## Enriquecimiento MusicBrainz
 
@@ -45,36 +45,27 @@ Configura `OPENAI_API_KEY` y, si se desea, `OPENAI_MODEL` en `apps/web/.env.loca
 Requiere Node.js 24.x (la versión queda fijada en `.node-version` y `.nvmrc`) y pnpm 10 o superior. Con nvm: `nvm install 24 && nvm use 24`.
 
 ```sh
-cp .env.example apps/wiim-agent/.env
-# Completa AGENT_TOKEN. WIIM_HOST es opcional: el agente descubre WiiM automáticamente.
 pnpm install
-pnpm dev
+pnpm web:dev
 ```
 
-En `apps/web/.env.local`, configura el mismo `AGENT_TOKEN` para desarrollo. Abre `http://localhost:3000`; el estado del agente aparece en `http://localhost:3847`.
+Configura `BROWSER_ACCESS_CODE` y `BROWSER_SESSION_SECRET` en `apps/web/.env.local`. Abre `http://localhost:3000` y usa **Conectar WiiM** para el primer emparejamiento.
 
-Para que un iPad/tablet cargue inmediatamente carátulas de USB, el agente detecta automáticamente la interfaz LAN que comparte subred con el WiiM y publica sólo `/artwork/current` dentro de esa LAN. `/debug` sigue restringido a localhost; no abre ni configura puertos en el router. `LOCAL_ARTWORK_BASE_URL` es únicamente un override para Docker o redes inusuales.
-
-Para inspeccionar exactamente qué expone el firmware del WiiM, abre `http://localhost:3847/debug`. No incluye el token; comparte sólo `rawMetadata` si se necesita soporte técnico.
-
-Comandos: `pnpm web:dev`, `pnpm agent:dev`, `pnpm test`, `pnpm build`, `pnpm lint`.
+Comandos: `pnpm web:dev`, `pnpm test`, `pnpm build`, `pnpm lint`.
 
 ## Producción y datos
 
-- Vercel aloja únicamente `apps/web`; el agente siempre inicia conexiones salientes HTTPS.
+- Vercel aloja la aplicación web completa.
 - Neon es PostgreSQL de producción. `pnpm db:generate` genera migraciones y `pnpm db:migrate` las aplica una vez configurado `DATABASE_URL`.
 - La aplicación usa HTTP serverless de Neon; la CLI de migraciones usa `pg` con TLS, por lo que no depende de WebSocket.
-- Para producción, los tokens de agentes deben aprovisionarse como hashes en `agents.tokenHash`; el secreto compartido de `.env` sólo es el bootstrap de desarrollo y no debe usarse para varios amigos.
-- `apps/wiim-agent/install-macos.sh` instala el agente como `~/Library/LaunchAgents/com.digitalalbum.agent.plist`.
+### WiiM desde el navegador
 
-### WiiM desde el navegador (sin agente mientras la pestaña esté abierta)
-
-Además del agente, la web puede sincronizar directamente con el WiiM de la misma red local mientras la pestaña se mantiene abierta. Es útil para un iPad o para amigos que no desean dejar un computador encendido. En Vercel define `BROWSER_ACCESS_CODE` (un código compartido para tu grupo) y `BROWSER_SESSION_SECRET` (un secreto aleatorio, por ejemplo generado con `openssl rand -base64 32`). No uses ni expongas `AGENT_TOKEN` en el navegador.
+La web sincroniza directamente con el WiiM de la misma red local mientras la pestaña se mantiene abierta. Es útil para un iPad o para amigos que no desean dejar un computador encendido. En Vercel define `BROWSER_ACCESS_CODE` (un código compartido para tu grupo) y `BROWSER_SESSION_SECRET` (un secreto aleatorio, por ejemplo generado con `openssl rand -base64 32`).
 
 Al abrir la aplicación, usa **Conectar WiiM**, ingresa el código y deja vacío el host para intentar `wiim.local` / `wiim-ultra.local`. Si el router no publica esos nombres, ingresa la IP local una sola vez: queda guardada únicamente en ese navegador. La pestaña consulta `getStatusEx` y `getPlayerStatus` cada cuatro segundos y publica sólo cambios de pista, álbum, fuente o estado; no registra progreso de reproducción.
 
-Esta modalidad depende de que Safari/Chrome permita al sitio HTTPS acceder a la API HTTP local del WiiM. Es una restricción de seguridad del navegador y de los encabezados CORS del firmware, no una capacidad de Vercel. Por eso debe probarse en el iPad/red reales; si se bloquea, el agente sigue siendo la opción que funciona de forma continua y sin depender de la pestaña.
+Esta modalidad depende de que Safari/Chrome permita al sitio HTTPS acceder a la API HTTP local del WiiM. Es una restricción de seguridad del navegador y de los encabezados CORS del firmware, no una capacidad de Vercel. Por eso debe probarse en el iPad/red reales.
 
 ## Siguiente hito crítico
 
-Con el Ultra encendido, el agente usa SSDP para descubrirlo y vuelve a intentarlo periódicamente si está apagado o cambia de IP DHCP. `WIIM_HOST` existe sólo como fallback para redes que bloquean multicast. Se necesita guardar de forma segura (sin token) la salida de `getStatusEx`, `getPlayerStatus` y el `description.xml` UPnP para confirmar exactamente qué metadata entrega el firmware. Sólo entonces se conecta el adaptador de metadata definitivo y se habilita MusicBrainz/CAA.
+Con el Ultra encendido, la web intenta `wiim.local` y `wiim-ultra.local`. Los navegadores no permiten enviar discovery SSDP/UPnP multicast, así que si esos nombres no existen en la red hay que indicar la IP local una única vez; se guarda sólo en ese navegador. Se necesita confirmar la compatibilidad de Safari/iPad con la API local del firmware antes de considerar este flujo definitivo.

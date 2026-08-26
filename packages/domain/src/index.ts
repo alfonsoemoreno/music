@@ -20,6 +20,7 @@ export interface PlaybackEvent {
   nowPlaying: NowPlaying;
 }
 
+/** Transport payload shared by the browser bridge and the cloud. */
 export interface AgentPlaybackPayload extends NowPlaying {
   agentVersion: string;
 }

@@ -7,12 +7,6 @@ const safeCompare = (expected: string | undefined, supplied: string | undefined)
   return expectedBuffer.length === suppliedBuffer.length && timingSafeEqual(expectedBuffer, suppliedBuffer);
 };
 
-export const isValidAgentToken = (authorization: string | null): boolean => {
-  const expected = process.env.AGENT_TOKEN;
-  const supplied = authorization?.replace(/^Bearer\s+/i, "");
-  return safeCompare(expected, supplied);
-};
-
 const browserSessionSecret = (): string | undefined => process.env.BROWSER_SESSION_SECRET ?? process.env.AUTH_SECRET;
 
 export const isBrowserBridgeConfigured = (): boolean => Boolean(process.env.BROWSER_ACCESS_CODE && browserSessionSecret());
