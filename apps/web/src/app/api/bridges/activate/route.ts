@@ -5,7 +5,7 @@ import { hashEnrollmentCode } from "@/lib/bridge-auth";
 import { database } from "@/db/client";
 import { bridgeEnrollmentCodes, bridges } from "@/db/schema";
 
-const inputSchema = z.object({ enrollmentCode: z.string().min(20).max(200), installationId: z.string().uuid(), name: z.string().min(1).max(100), publicKey: z.string().min(100).max(2_000) });
+const inputSchema = z.object({ enrollmentCode: z.string().regex(/^\d{6}$/), installationId: z.string().uuid(), name: z.string().min(1).max(100), publicKey: z.string().min(100).max(2_000) });
 
 /** Exchanges the one-time code for a bridge identity whose events are signed by its Android Keystore key. */
 export const POST = async (request: Request): Promise<NextResponse> => {

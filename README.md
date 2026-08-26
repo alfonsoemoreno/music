@@ -44,7 +44,7 @@ pnpm db:migrate
 ## Emparejar Music Bridge
 
 1. En la web de Music, usa **Conectar Android** e introduce `BROWSER_ACCESS_CODE`.
-2. La página muestra una dirección HTTPS y un código temporal de un solo uso.
+2. La página muestra una dirección HTTPS y un PIN numérico de seis dígitos, temporal y de un solo uso.
 3. Abre `apps/android-bridge` en Android Studio, instala la app en el teléfono y pega ambos datos.
 4. Toca **Emparejar y comenzar**. Android crea una clave privada local en Keystore y entrega a Music únicamente su clave pública.
 5. Deja visible la notificación `Music Bridge activo`. El teléfono descubre el WiiM sin IP manual y envía cambios de pista, álbum, fuente, pausa o reproducción.

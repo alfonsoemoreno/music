@@ -1,12 +1,11 @@
-import { createHash, createPublicKey, randomBytes, verify } from "node:crypto";
+import { createPublicKey, verify } from "node:crypto";
 import { and, eq, isNull } from "drizzle-orm";
 import { database } from "@/db/client";
 import { bridgeNonces, bridges } from "@/db/schema";
+export { createEnrollmentCode, hashEnrollmentCode } from "./bridge-pairing";
+import { hashEnrollmentCode } from "./bridge-pairing";
 
 const maxClockSkewMs = 5 * 60 * 1_000;
-
-export const hashEnrollmentCode = (code: string): string => createHash("sha256").update(code).digest("hex");
-export const createEnrollmentCode = (): string => randomBytes(24).toString("base64url");
 
 const header = (request: Request, name: string): string | undefined => request.headers.get(name) ?? undefined;
 

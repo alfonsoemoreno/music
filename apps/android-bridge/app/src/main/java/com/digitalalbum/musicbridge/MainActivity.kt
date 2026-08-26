@@ -38,7 +38,7 @@ class MainActivity : Activity() {
             setPadding(0, padding / 2, 0, padding)
         }
         serverUrl = field("Dirección de tu Music en Vercel", InputType.TYPE_TEXT_VARIATION_URI)
-        enrollmentCode = field("Código temporal mostrado en Music", InputType.TYPE_CLASS_TEXT)
+        enrollmentCode = field("PIN de 6 dígitos mostrado en Music", InputType.TYPE_CLASS_NUMBER).apply { maxEms = 6 }
         bridgeName = field("Nombre del puente", InputType.TYPE_CLASS_TEXT).apply { setText("Android Music Bridge") }
         connect = Button(this).apply { text = "Emparejar y comenzar" }
         status = TextView(this).apply { textSize = 15f; setPadding(0, padding, 0, 0) }
@@ -81,8 +81,8 @@ class MainActivity : Activity() {
         val url = serverUrl.text.toString().trim().trimEnd('/')
         val code = enrollmentCode.text.toString().trim()
         val name = bridgeName.text.toString().trim().ifBlank { "Android Music Bridge" }
-        if (!url.startsWith("https://") || code.length < 20) {
-            status.text = "Ingresa la dirección HTTPS de Music y el código temporal completo."
+        if (!url.startsWith("https://") || !code.matches(Regex("\\d{6}"))) {
+            status.text = "Ingresa la dirección HTTPS de Music y el PIN de seis dígitos."
             return
         }
         connect.isEnabled = false

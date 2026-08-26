@@ -5,7 +5,7 @@
 ## Uso
 
 1. En Music, abre **WiiM local → Conectar Android** e introduce el código de acceso de la web.
-2. Copia en el teléfono la dirección HTTPS y el código temporal que aparecen en pantalla. El código caduca a los diez minutos y sólo sirve una vez.
+2. Copia en el teléfono la dirección HTTPS y el PIN numérico de seis dígitos que aparecen en pantalla. El PIN caduca a los diez minutos y sólo sirve una vez.
 3. Instala y abre `Music Bridge`, introduce ambos datos y toca **Emparejar y comenzar**.
 4. Deja el teléfono conectado al cargador y a la misma Wi-Fi que el WiiM. La notificación persistente confirma que el puente está activo.
 
