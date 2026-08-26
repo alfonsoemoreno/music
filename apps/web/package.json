@@ -1,0 +1,40 @@
+{
+  "name": "@music/web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "test": "vitest run --passWithNoTests",
+    "lint": "tsc --noEmit",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "discogs:verify": "node --env-file=.env.local scripts/verify-discogs.mjs"
+  },
+  "dependencies": {
+    "@emotion/cache": "^11.14.0",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
+    "@mui/material": "^7.1.0",
+    "@music/domain": "workspace:*",
+    "@music/metadata": "workspace:*",
+    "@neondatabase/serverless": "^1.0.1",
+    "drizzle-orm": "^0.44.2",
+    "next": "^15.3.2",
+    "openai": "^7.5.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "sanitize-html": "^2.17.7",
+    "zod": "^3.24.3"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.15.2",
+    "@types/react": "^19.1.2",
+    "@types/react-dom": "^19.1.2",
+    "@types/sanitize-html": "^2.16.1",
+    "dotenv": "^16.5.0",
+    "drizzle-kit": "^0.31.1",
+    "pg": "^8.16.0"
+  }
+}

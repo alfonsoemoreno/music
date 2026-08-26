@@ -1,0 +1,1 @@
+ALTER TABLE "current_playback" ADD COLUMN "event_id" text DEFAULT '' NOT NULL;

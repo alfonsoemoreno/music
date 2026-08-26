@@ -1,0 +1,8 @@
+{
+  "name": "@music/metadata",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": { "build": "tsc --noEmit", "test": "vitest run --passWithNoTests", "lint": "tsc --noEmit" },
+  "dependencies": { "@music/domain": "workspace:*" }
+}

@@ -1,0 +1,7 @@
+{
+  "name": "@music/domain",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": { "build": "tsc --noEmit", "test": "vitest run", "lint": "tsc --noEmit" }
+}

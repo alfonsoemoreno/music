@@ -1,0 +1,14 @@
+{
+  "name": "@music/wiim-agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --env-file=.env --import tsx src/index.ts",
+    "start": "node --env-file=.env --import tsx src/index.ts",
+    "build": "tsc --noEmit",
+    "test": "vitest run",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": { "@music/domain": "workspace:*" }
+}

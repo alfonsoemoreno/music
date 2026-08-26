@@ -1,0 +1,8 @@
+node_modules
+.next
+.next-verify
+dist
+coverage
+.env
+.env.local
+*.log
