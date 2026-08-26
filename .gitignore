@@ -1,8 +1,9 @@
 node_modules
-.next
+.next*
 .next-verify
 dist
 coverage
 .env
 .env.local
 *.log
+.vercel
