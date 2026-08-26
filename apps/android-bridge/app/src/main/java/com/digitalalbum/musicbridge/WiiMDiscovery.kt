@@ -24,7 +24,9 @@ object WiiMDiscovery {
                     val location = response.lineSequence().firstOrNull { it.startsWith("location:", true) }?.substringAfter(':')?.trim() ?: continue
                     val host = URI(location).host ?: continue
                     val status = runCatching { HttpJson.get("http://$host/httpapi.asp?command=getStatusEx") }.getOrNull() ?: continue
-                    if (status.optString("project").contains("WiiM", true) || status.optString("DeviceName").contains("WiiM", true)) return host
+                    // getStatusEx differs by firmware: Ultra returns its fields nested in `device`.
+                    val device = status.optJSONObject("device") ?: status
+                    if (device.optString("project").contains("WiiM", true) || device.optString("DeviceName").contains("WiiM", true)) return host
                 }
             }
         } catch (_: Exception) { return null } finally { lock.release() }

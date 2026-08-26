@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.IBinder
+import android.util.Log
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
@@ -22,6 +23,7 @@ class PlaybackMonitorService : Service() {
     private var lastFingerprint: String? = null
     private var host: String? = null
     private var failedPolls = 0
+    private var statusText = "Buscando WiiM en esta red Wi‑Fi"
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         startForeground(notificationId, notification())
@@ -33,16 +35,25 @@ class PlaybackMonitorService : Service() {
 
     private fun poll() {
         val config = BridgePreferences(this).configuration() ?: return
-        val activeHost = host ?: WiiMDiscovery.find(this)?.also { host = it } ?: return
+        val activeHost = host ?: WiiMDiscovery.find(this)?.also {
+            host = it
+            updateStatus("WiiM encontrado: $it")
+        } ?: run {
+            updateStatus("Buscando WiiM en esta red Wi‑Fi")
+            return
+        }
         try {
             val playback = WiiMClient(activeHost).nowPlaying()
             failedPolls = 0
             if (playback.fingerprint != lastFingerprint) {
                 CloudClient.sendPlayback(config, playback.body)
                 lastFingerprint = playback.fingerprint
+                updateStatus("WiiM conectado · reproducción sincronizada")
             }
-        } catch (_: Exception) {
+        } catch (error: Exception) {
+            Log.w("MusicBridge", "WiiM polling failed", error)
             failedPolls += 1
+            updateStatus("No se pudo consultar el WiiM; reintentando…")
             // Re-discover after a device/IP change without spamming the LAN.
             if (failedPolls >= 3) {
                 host = null
@@ -53,10 +64,16 @@ class PlaybackMonitorService : Service() {
 
     private fun notification() = android.app.Notification.Builder(this, channelId)
         .setContentTitle("Music Bridge activo")
-        .setContentText("Buscando y acompañando tu WiiM en esta red Wi‑Fi")
+        .setContentText(statusText)
         .setSmallIcon(android.R.drawable.ic_media_play)
         .setOngoing(true)
         .build()
+
+    private fun updateStatus(text: String) {
+        if (statusText == text) return
+        statusText = text
+        getSystemService(NotificationManager::class.java).notify(notificationId, notification())
+    }
 
     override fun onCreate() {
         super.onCreate()

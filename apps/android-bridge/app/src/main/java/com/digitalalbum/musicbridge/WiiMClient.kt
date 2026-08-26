@@ -15,8 +15,12 @@ class WiiMClient(private val host: String) {
         return value.replace("&apos;", "'").replace("&#39;", "'").replace("&amp;", "&")
     }
     fun nowPlaying(): Playback {
-        val device = command("getStatusEx")
-        val player = command("getPlayerStatus")
+        val status = command("getStatusEx")
+        val device = status.optJSONObject("device") ?: status
+        // Some WiiM firmwares expose player data directly in getStatusEx; keep that
+        // response as a fallback when getPlayerStatus is absent or formatted differently.
+        val playerResponse = runCatching { command("getPlayerStatus") }.getOrNull()
+        val player = playerResponse?.optJSONObject("player") ?: playerResponse ?: status.optJSONObject("player") ?: status
         val artist = decode(player.optString("Artist").ifBlank { player.optString("artist") }) ?: "Unknown artist"
         val title = decode(player.optString("Title").ifBlank { player.optString("title") }) ?: "Unknown track"
         val albumTitle = decode(player.optString("Album").ifBlank { player.optString("album") })
