@@ -66,9 +66,9 @@ export const WiiMBrowserBridge = (): React.JSX.Element => {
   const [host, setHost] = useState("");
   const [accessCode, setAccessCode] = useState("");
   const [message, setMessage] = useState("Conecta tu WiiM mientras esta pestaña permanezca abierta.");
-  const activeHost = useRef<string>();
-  const lastFingerprint = useRef<string>();
-  const timer = useRef<number>();
+  const activeHost = useRef<string | undefined>(undefined);
+  const lastFingerprint = useRef<string | undefined>(undefined);
+  const timer = useRef<number | undefined>(undefined);
 
   const stop = (): void => {
     if (timer.current) window.clearTimeout(timer.current);

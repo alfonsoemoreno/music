@@ -67,6 +67,14 @@ Comandos: `pnpm web:dev`, `pnpm agent:dev`, `pnpm test`, `pnpm build`, `pnpm lin
 - Para producción, los tokens de agentes deben aprovisionarse como hashes en `agents.tokenHash`; el secreto compartido de `.env` sólo es el bootstrap de desarrollo y no debe usarse para varios amigos.
 - `apps/wiim-agent/install-macos.sh` instala el agente como `~/Library/LaunchAgents/com.digitalalbum.agent.plist`.
 
+### WiiM desde el navegador (sin agente mientras la pestaña esté abierta)
+
+Además del agente, la web puede sincronizar directamente con el WiiM de la misma red local mientras la pestaña se mantiene abierta. Es útil para un iPad o para amigos que no desean dejar un computador encendido. En Vercel define `BROWSER_ACCESS_CODE` (un código compartido para tu grupo) y `BROWSER_SESSION_SECRET` (un secreto aleatorio, por ejemplo generado con `openssl rand -base64 32`). No uses ni expongas `AGENT_TOKEN` en el navegador.
+
+Al abrir la aplicación, usa **Conectar WiiM**, ingresa el código y deja vacío el host para intentar `wiim.local` / `wiim-ultra.local`. Si el router no publica esos nombres, ingresa la IP local una sola vez: queda guardada únicamente en ese navegador. La pestaña consulta `getStatusEx` y `getPlayerStatus` cada cuatro segundos y publica sólo cambios de pista, álbum, fuente o estado; no registra progreso de reproducción.
+
+Esta modalidad depende de que Safari/Chrome permita al sitio HTTPS acceder a la API HTTP local del WiiM. Es una restricción de seguridad del navegador y de los encabezados CORS del firmware, no una capacidad de Vercel. Por eso debe probarse en el iPad/red reales; si se bloquea, el agente sigue siendo la opción que funciona de forma continua y sin depender de la pestaña.
+
 ## Siguiente hito crítico
 
 Con el Ultra encendido, el agente usa SSDP para descubrirlo y vuelve a intentarlo periódicamente si está apagado o cambia de IP DHCP. `WIIM_HOST` existe sólo como fallback para redes que bloquean multicast. Se necesita guardar de forma segura (sin token) la salida de `getStatusEx`, `getPlayerStatus` y el `description.xml` UPnP para confirmar exactamente qué metadata entrega el firmware. Sólo entonces se conecta el adaptador de metadata definitivo y se habilita MusicBrainz/CAA.
