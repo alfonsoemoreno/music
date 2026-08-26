@@ -1,71 +1,74 @@
 # Music — Digital Album Companion
 
-Una compañía visual para el álbum que se está reproduciendo en un WiiM. No reproduce, descarga ni captura audio.
+Una compañía visual para el álbum que se reproduce mediante WiiM. Music no reproduce, descarga ni captura audio: muestra portada, libreto, contexto, créditos y ediciones mientras la música sigue en Qobuz, Tidal, Spotify, USB o radio.
 
-## Estado del MVP
+## Arquitectura actual
 
-El repositorio contiene una única aplicación Next.js. Mientras la pestaña está abierta, el navegador consulta el WiiM de su propia red local, publica sólo cambios relevantes y la web consulta `GET /api/playback/now` cada dos segundos. La interfaz está deliberadamente centrada en la portada y el álbum, no en controles de reproducción.
+```text
+WiiM Ultra ── LAN/HTTP ──> Android Music Bridge ── HTTPS firmado ──> Music (Vercel + Neon)
+                                                                     │
+                                                               iPad / navegador
+```
 
-Cuando existe `DATABASE_URL`, `now playing` se persiste en Neon y funciona entre invocaciones Vercel. Sin esa variable, el desarrollo local usa una memoria global de un único proceso Next.js; no es persistente ni adecuada para despliegue.
+La web alojada en Vercel no puede consultar de forma fiable una API HTTP de una IP privada desde un navegador HTTPS. En cambio, un teléfono Android que permanece en casa consulta el WiiM localmente, lo descubre por SSDP y publica sólo los cambios relevantes. No se abre ningún puerto del router ni se conserva una IP del WiiM en la nube.
 
-## WiiM: hallazgo técnico validado
+## Requisitos
 
-WiiM publica una [API HTTP oficial](https://www.wiimhome.com/pdf/HTTP%20API%20for%20WiiM%20Products.pdf): `getStatusEx` entrega identidad y firmware, mientras `getPlayerStatus` garantiza estado, modo/fuente, posición y duración. WiiM también declara HTTP y UPnP como interfaces de integración en su [página de soporte](https://www.wiimhome.com/support/index). El manual actual del Ultra documenta mDNS y UPnP/DLNA en LAN.
+- Node.js 24.x y pnpm 10+ para la web.
+- Neon PostgreSQL para producción.
+- Un teléfono Android conectado a la misma Wi-Fi que el WiiM para el puente local. Es recomendable dejarlo cargando.
+- Android Studio Panda 3 (2025.3.3 Patch 1) o posterior, con Android SDK 37, para compilar la app `Music Bridge`.
 
-Limitación importante: la respuesta HTTP publicada no garantiza campos de artista, álbum, track o artwork. Por ello el normalizador acepta los campos que algunos firmwares exponen, pero el siguiente hito debe capturar una respuesta real del Ultra con Qobuz/TIDAL y añadir el adaptador UPnP `AVTransport` para la metadata que exista. No se presupone que todos los proveedores expongan los mismos campos.
-
-Validación real: WiiM Ultra con firmware `Linkplay.5.2.826052` entrega Qobuz en `vendor` y los campos `Title`, `Artist` y `Album` como texto hexadecimal UTF-8. La web los decodifica antes de enviarlos al cloud.
-
-## Enriquecimiento MusicBrainz
-
-Al recibir una nueva canción, la web guarda primero el estado de reproducción y después intenta resolver artista/álbum/release/tracklist con MusicBrainz. Sólo acepta resultados con una confianza mínima de 75/100, guarda MBIDs y reutiliza los registros existentes en Neon. Las consultas se serializan a una por 1,1 segundos para respetar el límite público de MusicBrainz. La portada principal se referencia desde Cover Art Archive usando el MBID del release group; si no existe, la aplicación sigue mostrando la metadata sin portada.
-
-## Discogs
-
-Agrega `DISCOGS_TOKEN` a `apps/web/.env.local` y valida un token personal con `pnpm --filter @music/web discogs:verify`. Discogs es opcional: un error o ausencia de token no interrumpe MusicBrainz ni la vista principal. Para cada álbum se conservan hasta tres ediciones físicas candidatas; Booklet y Credits muestran únicamente el material asociado a la edición elegida, ya que una edición de streaming no identifica de forma fiable un prensado físico concreto.
-
-## Wikipedia y Wikidata
-
-No requieren token. Tras identificar un álbum con MusicBrainz, la nube busca una introducción breve y atribuida para el álbum y para el artista. Se conserva el enlace a Wikipedia y el identificador de Wikidata cuando está disponible; no se almacenan artículos completos. Si la fuente no responde o el resultado no es suficientemente claro, la ficha continúa funcionando sin ese bloque editorial.
-
-La ficha muestra el estado persistente de MusicBrainz, Discogs y Wikipedia (`ready`, `loading`, `failed` o `not configured`). Los errores se conservan únicamente como diagnóstico técnico; no se muestran secretos.
-
-## Fanart.tv y Last.fm
-
-Ambas integraciones son opcionales. `FANARTTV_API_KEY` añade imágenes suplementarias asociadas al MBID del artista/release group y sólo se usa como material secundario de Booklet: la portada recibida desde Qobuz/TIDAL permanece prioritaria. `LASTFM_API_KEY` guarda hasta seis tags comunitarios del álbum, separados de los géneros canónicos de MusicBrainz. Las claves se configuran exclusivamente en `apps/web/.env.local` y nunca llegan al navegador.
-
-## Notas de escucha con OpenAI
-
-La integración con OpenAI es opcional y se activa sólo al pulsar **Crear nota de escucha** dentro de un álbum. Envía un contexto reducido ya almacenado (título, artista, géneros, tags, resumen editorial, tracklist y créditos) y devuelve una breve síntesis en español con hasta tres claves de escucha. No recibe el `rawMetadata` del WiiM, direcciones IP, tokens ni historial de escucha.
-
-Configura `OPENAI_API_KEY` y, si se desea, `OPENAI_MODEL` en `apps/web/.env.local`. El valor por defecto es `gpt-4.1-mini`. La respuesta se guarda en Neon por álbum, de modo que abrir o volver a reproducir ese disco no genera nuevas llamadas. La nota no sustituye ni amplía las fuentes: se le instruye a ordenar únicamente los datos entregados y la interfaz lo identifica como síntesis editorial de OpenAI.
-
-## Puesta en marcha
-
-Requiere Node.js 24.x (la versión queda fijada en `.node-version` y `.nvmrc`) y pnpm 10 o superior. Con nvm: `nvm install 24 && nvm use 24`.
+## Ejecutar la web
 
 ```sh
+nvm use 24
 pnpm install
 pnpm web:dev
 ```
 
-Configura `BROWSER_ACCESS_CODE` y `BROWSER_SESSION_SECRET` en `apps/web/.env.local`. Abre `http://localhost:3000` y usa **Conectar WiiM** para el primer emparejamiento.
+Configura `apps/web/.env.local` a partir de `.env.example`. Para producción, define las mismas variables en Vercel. Se necesitan al menos:
 
-Comandos: `pnpm web:dev`, `pnpm test`, `pnpm build`, `pnpm lint`.
+```dotenv
+DATABASE_URL=
+BROWSER_ACCESS_CODE=
+BROWSER_SESSION_SECRET=
+```
 
-## Producción y datos
+Luego aplica las migraciones, incluida la del puente Android:
 
-- Vercel aloja la aplicación web completa.
-- Neon es PostgreSQL de producción. `pnpm db:generate` genera migraciones y `pnpm db:migrate` las aplica una vez configurado `DATABASE_URL`.
-- La aplicación usa HTTP serverless de Neon; la CLI de migraciones usa `pg` con TLS, por lo que no depende de WebSocket.
-### WiiM desde el navegador
+```sh
+pnpm db:migrate
+```
 
-La web sincroniza directamente con el WiiM de la misma red local mientras la pestaña se mantiene abierta. Es útil para un iPad o para amigos que no desean dejar un computador encendido. En Vercel define `BROWSER_ACCESS_CODE` (un código compartido para tu grupo) y `BROWSER_SESSION_SECRET` (un secreto aleatorio, por ejemplo generado con `openssl rand -base64 32`).
+## Emparejar Music Bridge
 
-Al abrir la aplicación, usa **Conectar WiiM**, ingresa el código y deja vacío el host para intentar `wiim.local` / `wiim-ultra.local`. Si el router no publica esos nombres, ingresa la IP local una sola vez: queda guardada únicamente en ese navegador. La pestaña consulta `getStatusEx` y `getPlayerStatus` cada cuatro segundos y publica sólo cambios de pista, álbum, fuente o estado; no registra progreso de reproducción.
+1. En la web de Music, usa **Conectar Android** e introduce `BROWSER_ACCESS_CODE`.
+2. La página muestra una dirección HTTPS y un código temporal de un solo uso.
+3. Abre `apps/android-bridge` en Android Studio, instala la app en el teléfono y pega ambos datos.
+4. Toca **Emparejar y comenzar**. Android crea una clave privada local en Keystore y entrega a Music únicamente su clave pública.
+5. Deja visible la notificación `Music Bridge activo`. El teléfono descubre el WiiM sin IP manual y envía cambios de pista, álbum, fuente, pausa o reproducción.
 
-Esta modalidad depende de que Safari/Chrome permita al sitio HTTPS acceder a la API HTTP local del WiiM. Es una restricción de seguridad del navegador y de los encabezados CORS del firmware, no una capacidad de Vercel. Por eso debe probarse en el iPad/red reales.
+El código de emparejamiento expira en diez minutos. Cada publicación posterior incluye una firma ECDSA, fecha y nonce de uso único; la nube rechaza eventos no firmados o repetidos.
 
-## Siguiente hito crítico
+Consulta [la guía del proyecto Android](apps/android-bridge/README.md) para compilar el APK de depuración durante este MVP.
 
-Con el Ultra encendido, la web intenta `wiim.local` y `wiim-ultra.local`. Los navegadores no permiten enviar discovery SSDP/UPnP multicast, así que si esos nombres no existen en la red hay que indicar la IP local una única vez; se guarda sólo en ese navegador. Se necesita confirmar la compatibilidad de Safari/iPad con la API local del firmware antes de considerar este flujo definitivo.
+## Metadatos y experiencia editorial
+
+MusicBrainz identifica artista/álbum/release/tracklist y guarda MBIDs. Cover Art Archive se usa como respaldo de portada; las portadas expuestas por la fuente de reproducción se priorizan cuando WiiM las entrega. Discogs aporta ediciones físicas, créditos e imágenes; Fanart.tv añade arte suplementario separado; Wikipedia/Wikidata aportan contexto; Last.fm aporta tags opcionales. Las llamadas se almacenan en Neon y se ejecutan progresivamente, sin impedir que el cambio de álbum aparezca primero.
+
+La nota de escucha de OpenAI es opcional y se genera bajo demanda usando sólo el contexto editorial ya guardado. Configura `OPENAI_API_KEY` (y opcionalmente `OPENAI_MODEL`) para habilitarla.
+
+## Comandos de calidad
+
+```sh
+pnpm lint
+pnpm test
+pnpm build:verify
+```
+
+## Límites conocidos
+
+- La API LAN de WiiM no garantiza exactamente los mismos metadatos en Qobuz, Tidal, Spotify, USB y radio. El puente normaliza lo que el firmware expone y el cloud resuelve el resto sin inventar datos.
+- Android puede limitar aplicaciones en segundo plano: Music Bridge se ejecuta como servicio visible y necesita que el teléfono permanezca encendido y conectado a Wi-Fi.
+- La comunicación local hacia WiiM usa HTTP porque es la interfaz LAN que ofrece el dispositivo. El tráfico del teléfono a Music es HTTPS.

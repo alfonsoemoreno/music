@@ -1,4 +1,7 @@
 node_modules
+.gradle
+local.properties
+apps/android-bridge/app/build
 .next*
 .next-verify
 dist
