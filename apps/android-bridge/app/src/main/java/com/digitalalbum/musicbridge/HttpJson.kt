@@ -5,13 +5,13 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 object HttpJson {
-    fun get(url: String): JSONObject = request("GET", url, null, emptyMap())
+    fun get(url: String, timeoutMs: Int = 5_000): JSONObject = request("GET", url, null, emptyMap(), timeoutMs)
     fun post(url: String, body: String, headers: Map<String, String> = emptyMap()): JSONObject = request("POST", url, body, headers)
-    private fun request(method: String, target: String, body: String?, headers: Map<String, String>): JSONObject {
+    private fun request(method: String, target: String, body: String?, headers: Map<String, String>, timeoutMs: Int = 5_000): JSONObject {
         val connection = URL(target).openConnection() as HttpURLConnection
         connection.requestMethod = method
-        connection.connectTimeout = 5_000
-        connection.readTimeout = 5_000
+        connection.connectTimeout = timeoutMs
+        connection.readTimeout = timeoutMs
         connection.setRequestProperty("accept", "application/json")
         headers.forEach { (name, value) -> connection.setRequestProperty(name, value) }
         if (body != null) {
