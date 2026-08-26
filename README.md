@@ -31,8 +31,6 @@ Configura `apps/web/.env.local` a partir de `.env.example`. Para producción, de
 
 ```dotenv
 DATABASE_URL=
-BROWSER_ACCESS_CODE=
-BROWSER_SESSION_SECRET=
 ```
 
 Luego aplica las migraciones, incluida la del puente Android:
@@ -43,8 +41,8 @@ pnpm db:migrate
 
 ## Emparejar Music Bridge
 
-1. En la web de Music, usa **Conectar Android** e introduce `BROWSER_ACCESS_CODE`.
-2. La página muestra una dirección HTTPS y un PIN numérico de seis dígitos, temporal y de un solo uso.
+1. En la web de Music, usa **Conectar Android**.
+2. La página muestra de inmediato una dirección HTTPS y un PIN numérico de seis dígitos, temporal y de un solo uso.
 3. Abre `apps/android-bridge` en Android Studio, instala la app en el teléfono y pega ambos datos.
 4. Toca **Emparejar y comenzar**. Android crea una clave privada local en Keystore y entrega a Music únicamente su clave pública.
 5. Deja visible la notificación `Music Bridge activo`. El teléfono descubre el WiiM sin IP manual y envía cambios de pista, álbum, fuente, pausa o reproducción.

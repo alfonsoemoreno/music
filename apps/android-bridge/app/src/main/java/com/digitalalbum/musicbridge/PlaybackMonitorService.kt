@@ -35,7 +35,7 @@ class PlaybackMonitorService : Service() {
 
     private fun poll() {
         val config = BridgePreferences(this).configuration() ?: return
-        val activeHost = host ?: WiiMDiscovery.find(this)?.also {
+        val activeHost = host ?: WiiMDiscovery.find(this, ::updateStatus)?.also {
             host = it
             updateStatus("WiiM encontrado: $it")
         } ?: run {
