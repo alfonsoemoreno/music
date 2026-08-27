@@ -14,11 +14,12 @@ const visualizers: Record<VisualizerName, string> = { led: "Barras", scope: "Osc
 const WaveIcon = (): React.JSX.Element => <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h2l2.1-6 3.2 12L13 3l2.1 15L17 9l1.3 3H21" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.7" /></svg>;
 const FullscreenIcon = (): React.JSX.Element => <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.7" /></svg>;
 
-export const SpectrumAnalyzer = (): React.JSX.Element => {
+export const SpectrumAnalyzer = ({ track, album, artist }: { track: string; album: string; artist: string }): React.JSX.Element => {
   const [open, setOpen] = useState(false);
   const [theme, setTheme] = useState<ThemeName>("studio");
   const [visualizer, setVisualizer] = useState<VisualizerName>("led");
   const [message, setMessage] = useState("El analizador escucha el ambiente de esta habitación.");
+  const [tickerIndex, setTickerIndex] = useState(0);
   const canvas = useRef<HTMLCanvasElement>(null);
   const panel = useRef<HTMLElement>(null);
   const analyser = useRef<AnalyserNode | undefined>(undefined);
@@ -54,13 +55,18 @@ export const SpectrumAnalyzer = (): React.JSX.Element => {
       stream.current = input;
       audioContext.current = context;
       analyser.current = node;
-      setMessage("Micrófono activo · audio procesado solo en este dispositivo");
+      setMessage("");
     } catch {
       setMessage("No se pudo acceder al micrófono. Autorízalo en el navegador y vuelve a intentarlo.");
     }
   };
 
   useEffect(() => () => stop(), [stop]);
+  useEffect(() => {
+    setTickerIndex(0);
+    const rotation = window.setInterval(() => setTickerIndex((index) => index + 1), 9_000);
+    return () => window.clearInterval(rotation);
+  }, [track, album, artist]);
   useEffect(() => {
     if (!open) return;
     const element = canvas.current;
@@ -132,6 +138,8 @@ export const SpectrumAnalyzer = (): React.JSX.Element => {
     if (document.fullscreenElement === panel.current) await document.exitFullscreen();
     else await panel.current?.requestFullscreen();
   };
+  const tickerMessages = [`NOW PLAYING — ${track} · ${album} · ${artist}`, `NOW PLAYING — ${artist} · ${track} · ${album}`, `NOW PLAYING — ${album} · ${artist} · ${track}`];
+  const ticker = tickerMessages[tickerIndex % tickerMessages.length];
 
-  return <div className="spectrum-container">{!open ? <button className="spectrum-trigger" type="button" aria-label="Abrir analizador de espectro" onClick={() => void start()}><WaveIcon /><span>Analizador</span></button> : <section ref={panel} className={`spectrum-panel ${theme}`} aria-label="Analizador de espectro"><header><div className="spectrum-actions"><div className="theme-picker" aria-label="Color del analizador">{(Object.keys(themes) as ThemeName[]).map((name) => <button className={name === theme ? "selected" : ""} key={name} onClick={() => setTheme(name)}>{themes[name].label}</button>)}</div><button className="spectrum-fullscreen" type="button" aria-label="Mostrar el analizador a pantalla completa" title="Pantalla completa" onClick={() => void toggleFullscreen().catch(() => undefined)}><FullscreenIcon /></button><button className="spectrum-close" type="button" onClick={close}>Cerrar</button></div></header><div className="spectrum-stage"><canvas ref={canvas} /><div className="spectrum-scale"><span>40 Hz</span><span>160 Hz</span><span>630 Hz</span><span>2.5 kHz</span><span>10 kHz</span><span>16 kHz</span></div></div><footer><span className="spectrum-led" />{message}</footer><div className="visualizer-picker" aria-label="Tipo de analizador">{(Object.keys(visualizers) as VisualizerName[]).map((name) => <button className={name === visualizer ? "selected" : ""} key={name} onClick={() => setVisualizer(name)}>{visualizers[name]}</button>)}</div></section>}</div>;
+  return <div className="spectrum-container">{!open ? <button className="spectrum-trigger" type="button" aria-label="Abrir analizador de espectro" onClick={() => void start()}><WaveIcon /><span>Analizador</span></button> : <section ref={panel} className={`spectrum-panel ${theme}`} aria-label="Analizador de espectro"><header><div className="spectrum-actions"><div className="theme-picker" aria-label="Color del analizador">{(Object.keys(themes) as ThemeName[]).map((name) => <button className={name === theme ? "selected" : ""} key={name} onClick={() => setTheme(name)}>{themes[name].label}</button>)}</div><button className="spectrum-fullscreen" type="button" aria-label="Mostrar el analizador a pantalla completa" title="Pantalla completa" onClick={() => void toggleFullscreen().catch(() => undefined)}><FullscreenIcon /></button><button className="spectrum-close" type="button" onClick={close}>Cerrar</button></div></header><div className="spectrum-stage"><canvas ref={canvas} /><div className="spectrum-scale"><span>40 Hz</span><span>160 Hz</span><span>630 Hz</span><span>2.5 kHz</span><span>10 kHz</span><span>16 kHz</span></div></div>{message ? <footer><span className="spectrum-led" />{message}</footer> : null}<div className="spectrum-now-playing" aria-live="polite"><div><span>{ticker}</span><span aria-hidden="true">{ticker}</span></div></div><div className="visualizer-picker" aria-label="Tipo de analizador">{(Object.keys(visualizers) as VisualizerName[]).map((name) => <button className={name === visualizer ? "selected" : ""} key={name} onClick={() => setVisualizer(name)}>{visualizers[name]}</button>)}</div></section>}</div>;
 };
