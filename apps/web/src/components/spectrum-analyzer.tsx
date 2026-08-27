@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 type ThemeName = "studio" | "neon" | "vintage";
 type VisualizerName = "led" | "scope" | "mirror" | "matrix" | "cascade" | "skyline" | "pulse" | "glow" | "wave" | "rainbow" | "nowPlaying" | "prism" | "mountain" | "steps" | "symmetric";
 type MarqueeColor = "violet" | "amber" | "ice" | "lime";
-type MarqueeSpeed = "relaxed" | "fast" | "turbo" | "ultra" | "five" | "six" | "eight" | "ten";
+type MarqueeSpeed = "relaxed" | "fast" | "turbo" | "ultra" | "five" | "six" | "eight" | "ten" | "fifteen" | "twenty";
 type MarqueeSize = "small" | "medium" | "large" | "xl";
 const themes: Record<ThemeName, { label: string; background: string; grid: string; bars: string[]; glow: string }> = {
   studio: { label: "Estudio", background: "#071008", grid: "#153e1b", bars: ["#12ef38", "#b6ef16", "#ffcb13", "#ff3131"], glow: "#10ff38" },
@@ -14,7 +14,7 @@ const themes: Record<ThemeName, { label: string; background: string; grid: strin
 };
 const visualizers: Record<VisualizerName, string> = { led: "Barras", scope: "Oscilo", mirror: "Espejo", matrix: "Matriz", cascade: "Cascada", skyline: "Skyline", pulse: "Pulso", glow: "Neón", wave: "Onda", rainbow: "Arcoíris", nowPlaying: "Now playing", prism: "Prisma LED", mountain: "Montaña LED", steps: "Pasos LED", symmetric: "Simetría LED" };
 const marqueeColors: Record<MarqueeColor, { label: string; value: string }> = { violet: { label: "Lila", value: "#b768ff" }, amber: { label: "Ámbar", value: "#ffc14d" }, ice: { label: "Hielo", value: "#fffdf5" }, lime: { label: "Lima", value: "#c8ff59" } };
-const marqueeSpeeds: Record<MarqueeSpeed, { label: string; divisor: number }> = { relaxed: { label: "1×", divisor: 48 }, fast: { label: "2×", divisor: 24 }, turbo: { label: "3×", divisor: 16 }, ultra: { label: "4×", divisor: 12 }, five: { label: "5×", divisor: 9.6 }, six: { label: "6×", divisor: 8 }, eight: { label: "8×", divisor: 6 }, ten: { label: "10×", divisor: 4.8 } };
+const marqueeSpeeds: Record<MarqueeSpeed, { label: string; divisor: number }> = { relaxed: { label: "1×", divisor: 48 }, fast: { label: "2×", divisor: 24 }, turbo: { label: "3×", divisor: 16 }, ultra: { label: "4×", divisor: 12 }, five: { label: "5×", divisor: 9.6 }, six: { label: "6×", divisor: 8 }, eight: { label: "8×", divisor: 6 }, ten: { label: "10×", divisor: 4.8 }, fifteen: { label: "15×", divisor: 3.2 }, twenty: { label: "20×", divisor: 2.4 } };
 const marqueeSizes: Record<MarqueeSize, { label: string; proportion: number; maxCell: number }> = { small: { label: "S", proportion: .36, maxCell: 36 }, medium: { label: "M", proportion: .46, maxCell: 48 }, large: { label: "L", proportion: .58, maxCell: 60 }, xl: { label: "XL", proportion: .7, maxCell: 72 } };
 const ledGlyphs: Record<string, string[]> = {
   A: ["01110", "10001", "10001", "11111", "10001", "10001", "10001"], B: ["11110", "10001", "10001", "11110", "10001", "10001", "11110"], C: ["01111", "10000", "10000", "10000", "10000", "10000", "01111"], D: ["11110", "10001", "10001", "10001", "10001", "10001", "11110"], E: ["11111", "10000", "10000", "11110", "10000", "10000", "11111"], F: ["11111", "10000", "10000", "11110", "10000", "10000", "10000"], G: ["01111", "10000", "10000", "10111", "10001", "10001", "01111"], H: ["10001", "10001", "10001", "11111", "10001", "10001", "10001"], I: ["11111", "00100", "00100", "00100", "00100", "00100", "11111"], J: ["00111", "00010", "00010", "00010", "10010", "10010", "01100"], K: ["10001", "10010", "10100", "11000", "10100", "10010", "10001"], L: ["10000", "10000", "10000", "10000", "10000", "10000", "11111"], M: ["10001", "11011", "10101", "10101", "10001", "10001", "10001"], N: ["10001", "11001", "10101", "10011", "10001", "10001", "10001"], O: ["01110", "10001", "10001", "10001", "10001", "10001", "01110"], P: ["11110", "10001", "10001", "11110", "10000", "10000", "10000"], Q: ["01110", "10001", "10001", "10001", "10101", "10010", "01101"], R: ["11110", "10001", "10001", "11110", "10100", "10010", "10001"], S: ["01111", "10000", "10000", "01110", "00001", "00001", "11110"], T: ["11111", "00100", "00100", "00100", "00100", "00100", "00100"], U: ["10001", "10001", "10001", "10001", "10001", "10001", "01110"], V: ["10001", "10001", "10001", "10001", "10001", "01010", "00100"], W: ["10001", "10001", "10001", "10101", "10101", "10101", "01010"], X: ["10001", "10001", "01010", "00100", "01010", "10001", "10001"], Y: ["10001", "10001", "01010", "00100", "00100", "00100", "00100"], Z: ["11111", "00001", "00010", "00100", "01000", "10000", "11111"],
@@ -75,7 +75,7 @@ export const SpectrumAnalyzer = ({ track, album, artist }: { track: string; albu
       node.smoothingTimeConstant = .78;
       node.minDecibels = -88;
       node.maxDecibels = -24;
-      gain.gain.value = 8;
+      gain.gain.value = 12;
       context.createMediaStreamSource(input).connect(gain).connect(node);
       stream.current = input;
       audioContext.current = context;
@@ -129,7 +129,7 @@ export const SpectrumAnalyzer = ({ track, album, artist }: { track: string; albu
       if (analyser.current) analyser.current.getByteTimeDomainData(waveform);
       if (inputGain.current && audioContext.current) {
         const rms = Math.sqrt(waveform.reduce((total, sample) => total + Math.pow((sample - 128) / 128, 2), 0) / waveform.length);
-        const targetLevel = .22; const currentGain = inputGain.current.gain.value; const targetGain = Math.min(32, Math.max(.8, currentGain * targetLevel / Math.max(rms, .012)));
+        const targetLevel = .32; const currentGain = inputGain.current.gain.value; const targetGain = Math.min(64, Math.max(.6, currentGain * targetLevel / Math.max(rms, .008)));
         inputGain.current.gain.setTargetAtTime(targetGain, audioContext.current.currentTime, .18);
       }
       const level = (index: number, count = barCount): number => analyser.current ? bins[Math.min(bins.length - 1, Math.floor(Math.pow(index / count, 1.8) * bins.length))] / 255 : .04;
