@@ -19,7 +19,7 @@ Este repositorio contiene el proyecto Android nativo; necesita Android Studio Pa
 2. Permite que Android Studio instale Gradle 9.3.1 y Android SDK Platform 37 cuando lo solicite.
 3. Ejecuta la aplicación en el teléfono por USB o genera un APK de depuración desde **Build → Build APK(s)**.
 
-La comunicación local con WiiM usa HTTP porque ésa es la interfaz LAN disponible del dispositivo. El tráfico hacia Music usa exclusivamente HTTPS. La clave de firma se genera dentro de Android Keystore y no se envía al servidor: el servidor sólo recibe la clave pública al emparejar.
+La comunicación local con WiiM admite HTTP y HTTPS según el firmware. En WiiM Ultra recientes el endpoint HTTPS puede presentar un certificado local propio; esa excepción de certificado se limita a direcciones privadas de la Wi-Fi. El tráfico hacia Music usa exclusivamente HTTPS con validación normal. La clave de firma se genera dentro de Android Keystore y no se envía al servidor: el servidor sólo recibe la clave pública al emparejar.
 
 ## Limitaciones intencionales
 

@@ -18,6 +18,8 @@ export const POST = async (request: Request): Promise<NextResponse> => {
 
   const consumed = await database.update(bridgeEnrollmentCodes).set({ consumedAt: now }).where(and(eq(bridgeEnrollmentCodes.id, enrollment.id), isNull(bridgeEnrollmentCodes.consumedAt))).returning({ id: bridgeEnrollmentCodes.id });
   if (!consumed[0]) return NextResponse.json({ error: "Enrollment code has already been used" }, { status: 409 });
-  const [bridge] = await database.insert(bridges).values({ installationId: parsed.data.installationId, name: parsed.data.name, publicKey: parsed.data.publicKey }).returning({ id: bridges.id, name: bridges.name });
+  const [bridge] = await database.insert(bridges).values({ installationId: parsed.data.installationId, viewerId: enrollment.viewerId, name: parsed.data.name, publicKey: parsed.data.publicKey })
+    .onConflictDoUpdate({ target: bridges.installationId, set: { viewerId: enrollment.viewerId, name: parsed.data.name, publicKey: parsed.data.publicKey, revokedAt: null } })
+    .returning({ id: bridges.id, name: bridges.name });
   return NextResponse.json({ bridgeId: bridge.id, name: bridge.name });
 };

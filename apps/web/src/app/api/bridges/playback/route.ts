@@ -14,7 +14,7 @@ export const POST = async (request: Request): Promise<NextResponse> => {
   const parsed = playbackSchema.safeParse(input);
   if (!parsed.success) return NextResponse.json({ error: "Invalid playback payload", details: parsed.error.flatten() }, { status: 400 });
 
-  const eventId = await setCurrentPlayback(parsed.data);
+  const eventId = await setCurrentPlayback(parsed.data, undefined, bridge.id);
   console.info(`[Android bridge:${bridge.name}] ${parsed.data.artist.name} — ${parsed.data.track.title}`);
   after(() => enrichPlayback(parsed.data, eventId));
   return NextResponse.json({ accepted: true, enrichment: "scheduled" }, { status: 202 });

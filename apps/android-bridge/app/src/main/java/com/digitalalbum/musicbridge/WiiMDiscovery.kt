@@ -2,12 +2,16 @@ package com.digitalalbum.musicbridge
 
 import android.content.Context
 import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.net.wifi.WifiManager
+import android.util.Log
 import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.Inet4Address
 import java.net.InetAddress
+import java.net.InetSocketAddress
 import java.net.URI
+import java.net.Socket
 import java.util.concurrent.ExecutorCompletionService
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -39,24 +43,42 @@ object WiiMDiscovery {
             lock.release()
         }
         report("SSDP no respondió; revisando la red Wi‑Fi…")
-        val found = findOnWifiSubnet(context)
+        val found = findOnWifiSubnet(context, report)
         if (found == null) report("No se encontró WiiM en esta Wi‑Fi")
         return found
     }
 
-    private fun isWiiM(host: String, timeoutMs: Int = 1_000): Boolean {
-        val status = runCatching { HttpJson.get("http://$host/httpapi.asp?command=getStatusEx", timeoutMs) }.getOrNull() ?: return false
+    private fun isWiiM(host: String, timeoutMs: Int = 5_000): Boolean {
+        val status = listOf("https", "http").firstNotNullOfOrNull { scheme ->
+            runCatching { HttpJson.get("$scheme://$host/httpapi.asp?command=getStatusEx", timeoutMs) }
+                .onFailure { Log.i("MusicBridge", "WiiM API $scheme failed at $host: ${it.message}") }
+                .getOrNull()
+        } ?: return false
         val device = status.optJSONObject("device") ?: status
-        return device.optString("project").contains("WiiM", true) || device.optString("DeviceName").contains("WiiM", true)
+        val match = device.optString("project").contains("WiiM", true) || device.optString("DeviceName").contains("WiiM", true)
+        Log.i("MusicBridge", "Local API found at $host; WiiM match=$match")
+        return match
     }
 
     /** Falls back to the current IPv4 Wi-Fi segment when SSDP multicast is unavailable. */
-    private fun findOnWifiSubnet(context: Context): String? {
+    private fun findOnWifiSubnet(context: Context, report: (String) -> Unit): String? {
         val connectivity = context.getSystemService(ConnectivityManager::class.java)
-        val properties = connectivity.getLinkProperties(connectivity.activeNetwork) ?: return null
-        val local = properties.linkAddresses.firstOrNull { it.address is Inet4Address && !it.address.isLoopbackAddress } ?: return null
+        val wifiNetwork = connectivity.allNetworks.firstOrNull { network ->
+            connectivity.getNetworkCapabilities(network)?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true
+        }
+        val properties = connectivity.getLinkProperties(wifiNetwork) ?: run {
+            report("No hay una interfaz Wi‑Fi activa para revisar")
+            return null
+        }
+        val local = properties.linkAddresses.firstOrNull { it.address is Inet4Address && !it.address.isLoopbackAddress } ?: run {
+            report("La Wi‑Fi no entregó una dirección IPv4")
+            return null
+        }
         val prefix = local.prefixLength
-        if (prefix !in 8..30) return null
+        if (prefix !in 8..30) {
+            report("La red Wi‑Fi usa una máscara IPv4 no compatible")
+            return null
+        }
 
         val address = local.address.address.fold(0L) { result, byte -> (result shl 8) or (byte.toInt() and 0xff).toLong() }
         val mask = (0xffff_ffffL shl (32 - prefix)) and 0xffff_ffffL
@@ -67,12 +89,26 @@ object WiiMDiscovery {
         val first = maxOf(network + 1, current24 + 1)
         val last = minOf(broadcast - 1, current24 + 254)
         if (last < first) return null
+        report("Revisando ${ipAddress(first)}–${ipAddress(last)} en Wi‑Fi…")
 
         val workers = Executors.newFixedThreadPool(24)
         val results = ExecutorCompletionService<String?>(workers)
         val candidates = (first..last).filter { it != address }.toList()
         try {
-            candidates.forEach { candidate -> results.submit { ipAddress(candidate).takeIf { isWiiM(it, 650) } } }
+            candidates.forEach { candidate ->
+                results.submit {
+                    val host = ipAddress(candidate)
+                    // Most LAN addresses do not host a WiiM. Probe the two known
+                    // local API ports first, then reserve the longer HTTPS timeout
+                    // for the few reachable candidates (WiiM Ultra uses 443 on
+                    // recent firmware, often with a device-local certificate).
+                    host.takeIf {
+                        hasWiiMApiPort(it).also { reachable ->
+                            if (reachable) Log.i("MusicBridge", "Candidate API port open: $host")
+                        } && isWiiM(it)
+                    }
+                }
+            }
             repeat(candidates.size) {
                 val host: String? = results.poll(8, TimeUnit.SECONDS)?.get()
                 if (host != null) return host
@@ -86,4 +122,10 @@ object WiiMDiscovery {
     }
 
     private fun ipAddress(value: Long): String = listOf(value shr 24 and 0xff, value shr 16 and 0xff, value shr 8 and 0xff, value and 0xff).joinToString(".")
+
+    private fun hasWiiMApiPort(host: String): Boolean = listOf(443, 80).any { port ->
+        runCatching {
+            Socket().use { socket -> socket.connect(InetSocketAddress(host, port), 350) }
+        }.isSuccess
+    }
 }

@@ -64,6 +64,13 @@
       "when": 1787774214365,
       "tag": "0008_real_longshot",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1787842400000,
+      "tag": "0009_private_pairing_scope",
+      "breakpoints": true
     }
   ]
 }

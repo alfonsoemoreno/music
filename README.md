@@ -5,12 +5,12 @@ Una compañía visual para el álbum que se reproduce mediante WiiM. Music no re
 ## Arquitectura actual
 
 ```text
-WiiM Ultra ── LAN/HTTP ──> Android Music Bridge ── HTTPS firmado ──> Music (Vercel + Neon)
+WiiM Ultra ── LAN/HTTP o HTTPS ──> Android Music Bridge ── HTTPS firmado ──> Music (Vercel + Neon)
                                                                      │
                                                                iPad / navegador
 ```
 
-La web alojada en Vercel no puede consultar de forma fiable una API HTTP de una IP privada desde un navegador HTTPS. En cambio, un teléfono Android que permanece en casa consulta el WiiM localmente, lo descubre por SSDP y publica sólo los cambios relevantes. No se abre ningún puerto del router ni se conserva una IP del WiiM en la nube.
+La web alojada en Vercel no puede consultar de forma fiable una API HTTP de una IP privada desde un navegador HTTPS. En cambio, un teléfono Android que permanece en casa consulta el WiiM localmente, lo descubre por SSDP y, si la red bloquea multicast, mediante una exploración acotada de la Wi-Fi. Publica sólo los cambios relevantes. No se abre ningún puerto del router ni se conserva una IP del WiiM en la nube.
 
 ## Requisitos
 
@@ -69,4 +69,4 @@ pnpm build:verify
 
 - La API LAN de WiiM no garantiza exactamente los mismos metadatos en Qobuz, Tidal, Spotify, USB y radio. El puente normaliza lo que el firmware expone y el cloud resuelve el resto sin inventar datos.
 - Android puede limitar aplicaciones en segundo plano: Music Bridge se ejecuta como servicio visible y necesita que el teléfono permanezca encendido y conectado a Wi-Fi.
-- La comunicación local hacia WiiM usa HTTP porque es la interfaz LAN que ofrece el dispositivo. El tráfico del teléfono a Music es HTTPS.
+- La comunicación local hacia WiiM admite HTTP y HTTPS según el firmware. Algunos WiiM Ultra recientes exponen HTTPS con certificado local propio; Music Bridge lo usa únicamente dentro de la red privada. El tráfico del teléfono a Music es siempre HTTPS validado normalmente.

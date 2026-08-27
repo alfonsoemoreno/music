@@ -6,7 +6,9 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import android.util.Log
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledFuture
@@ -27,6 +29,7 @@ class PlaybackMonitorService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         startForeground(notificationId, notification())
+        updateStatus("Iniciando búsqueda de WiiM…")
         if (polling == null) {
             polling = executor.scheduleWithFixedDelay(::poll, 0, pollIntervalMs, TimeUnit.MILLISECONDS)
         }
@@ -106,5 +109,10 @@ class PlaybackMonitorService : Service() {
         }
 
         fun stop(context: Context) = context.stopService(Intent(context, PlaybackMonitorService::class.java))
+
+        fun restart(context: Context) {
+            stop(context)
+            Handler(Looper.getMainLooper()).postDelayed({ start(context) }, 300)
+        }
     }
 }

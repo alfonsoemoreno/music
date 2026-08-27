@@ -1,18 +1,18 @@
 import type { AgentPlaybackPayload } from "@music/domain";
-import { and, asc, eq, ilike } from "drizzle-orm";
+import { and, asc, desc, eq, ilike } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import { database } from "@/db/client";
-import { albumEnrichmentStates, albums, artists, artwork, credits, currentPlayback, devices, releases, tracks, type AlbumEditorial } from "@/db/schema";
+import { albumEnrichmentStates, albums, artists, artwork, bridges, credits, currentPlayback, devices, releases, tracks, type AlbumEditorial } from "@/db/schema";
 import { isSamePlaybackTrack } from "./playback-identity";
 
 declare global { var musicDevelopmentPlayback: AgentPlaybackPayload | undefined; var musicDevelopmentPlaybackEventId: string | undefined; }
 
 /** Uses Neon when configured. The global fallback only makes local setup usable before Neon is provisioned. */
-export const setCurrentPlayback = async (payload: AgentPlaybackPayload, eventId = randomUUID()): Promise<string> => {
+export const setCurrentPlayback = async (payload: AgentPlaybackPayload, eventId = randomUUID(), bridgeId?: string): Promise<string> => {
   if (!database) { globalThis.musicDevelopmentPlayback = payload; globalThis.musicDevelopmentPlaybackEventId = eventId; return eventId; }
   const now = new Date();
-  await database.insert(devices).values({ id: payload.deviceId, name: payload.deviceId, deviceType: "WiiM", lastSeenAt: now, updatedAt: now })
-    .onConflictDoUpdate({ target: devices.id, set: { lastSeenAt: now, updatedAt: now } });
+  await database.insert(devices).values({ id: payload.deviceId, bridgeId, name: payload.deviceId, deviceType: "WiiM", lastSeenAt: now, updatedAt: now })
+    .onConflictDoUpdate({ target: devices.id, set: { bridgeId, lastSeenAt: now, updatedAt: now } });
   await database.insert(currentPlayback).values({ deviceId: payload.deviceId, eventId, payload, updatedAt: now })
     .onConflictDoUpdate({ target: currentPlayback.deviceId, set: { eventId, payload, updatedAt: now } });
   return eventId;
@@ -38,9 +38,13 @@ export const setCurrentPlaybackIfEventIsCurrent = async (payload: AgentPlaybackP
   await database.update(currentPlayback).set({ payload: merged, updatedAt: new Date() }).where(and(eq(currentPlayback.deviceId, payload.deviceId), eq(currentPlayback.eventId, current.eventId)));
 };
 
-export const getCurrentPlayback = async (): Promise<AgentPlaybackPayload | undefined> => {
+export const getCurrentPlayback = async (viewerId?: string): Promise<AgentPlaybackPayload | undefined> => {
   if (!database) return globalThis.musicDevelopmentPlayback;
-  const rows = await database.select().from(currentPlayback).limit(1);
+  if (!viewerId) return undefined;
+  const rows = await database.select({ payload: currentPlayback.payload }).from(currentPlayback)
+    .innerJoin(devices, eq(currentPlayback.deviceId, devices.id))
+    .innerJoin(bridges, eq(devices.bridgeId, bridges.id))
+    .where(eq(bridges.viewerId, viewerId)).orderBy(desc(currentPlayback.updatedAt)).limit(1);
   return rows[0]?.payload as AgentPlaybackPayload | undefined;
 };
 

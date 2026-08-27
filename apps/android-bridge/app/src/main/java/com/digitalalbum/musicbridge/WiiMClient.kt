@@ -5,14 +5,31 @@ import org.json.JSONObject
 data class Playback(val fingerprint: String, val body: JSONObject)
 
 class WiiMClient(private val host: String) {
-    private fun command(name: String): JSONObject = HttpJson.get("http://$host/httpapi.asp?command=$name")
+    private var scheme: String? = null
+    private fun command(name: String): JSONObject {
+        val schemes = listOfNotNull(scheme, "https", "http").distinct()
+        for (candidate in schemes) {
+            val response = runCatching { HttpJson.get("$candidate://$host/httpapi.asp?command=$name") }.getOrNull()
+            if (response != null) {
+                scheme = candidate
+                return response
+            }
+        }
+        throw IllegalStateException("WiiM did not respond over HTTPS or HTTP")
+    }
     private fun decode(value: String?): String? {
         if (value.isNullOrBlank()) return null
         val compact = value.replace("\\s".toRegex(), "")
-        if (compact.length % 2 == 0 && compact.matches(Regex("[0-9a-fA-F]+"))) {
-            return runCatching { compact.chunked(2).map { it.toInt(16).toByte() }.toByteArray().toString(Charsets.UTF_8) }.getOrDefault(value)
-        }
-        return value.replace("&apos;", "'").replace("&#39;", "'").replace("&amp;", "&")
+        val decoded = if (compact.length % 2 == 0 && compact.matches(Regex("[0-9a-fA-F]+"))) {
+            runCatching { compact.chunked(2).map { it.toInt(16).toByte() }.toByteArray().toString(Charsets.UTF_8) }.getOrDefault(value)
+        } else value
+        // WiiM can return a UTF-8 value encoded as hex that still contains HTML
+        // entities. Decode entities after hex decoding so titles such as
+        // "I&apos;ll String Along With You" remain ordinary text end to end.
+        return decoded
+            .replace(Regex("&apos;|&#39;|&#x27;", RegexOption.IGNORE_CASE), "'")
+            .replace(Regex("&quot;|&#34;|&#x22;", RegexOption.IGNORE_CASE), "\"")
+            .replace(Regex("&amp;", RegexOption.IGNORE_CASE), "&")
     }
     fun nowPlaying(): Playback {
         val status = command("getStatusEx")

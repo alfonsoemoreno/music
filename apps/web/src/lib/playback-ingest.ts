@@ -6,8 +6,12 @@ import { enrichFromWikipedia } from "@/lib/wikipedia";
 import { enrichFromLastFm } from "@/lib/lastfm";
 import { enrichFromFanart } from "@/lib/fanart";
 import { setEnrichmentState } from "@/lib/enrichment-state";
+import { decodeHtmlEntities } from "@/lib/html-entities";
 
-export const playbackSchema = z.object({ deviceId: z.string().min(1).max(200), playbackProvider: z.string().min(1), source: z.string().optional(), track: z.object({ title: z.string().min(1), durationMs: z.number().int().nonnegative().optional(), positionMs: z.number().int().nonnegative().optional(), externalId: z.string().optional() }), artist: z.object({ name: z.string().min(1), externalId: z.string().optional() }), album: z.object({ title: z.string().min(1), artworkUrl: z.string().url().optional(), externalId: z.string().optional() }).optional(), playback: z.object({ state: z.enum(["playing", "paused", "stopped"]) }), audio: z.object({ codec: z.string().optional(), sampleRate: z.number().int().positive().optional(), bitDepth: z.number().int().positive().optional(), bitrate: z.number().int().positive().optional() }).optional(), rawMetadata: z.unknown().optional(), agentVersion: z.string().min(1) });
+const metadataText = z.string().transform(decodeHtmlEntities);
+const requiredMetadataText = z.string().min(1).transform(decodeHtmlEntities);
+
+export const playbackSchema = z.object({ deviceId: z.string().min(1).max(200), playbackProvider: requiredMetadataText, source: metadataText.optional(), track: z.object({ title: requiredMetadataText, durationMs: z.number().int().nonnegative().optional(), positionMs: z.number().int().nonnegative().optional(), externalId: z.string().optional() }), artist: z.object({ name: requiredMetadataText, externalId: z.string().optional() }), album: z.object({ title: requiredMetadataText, artworkUrl: z.string().url().optional(), externalId: z.string().optional() }).optional(), playback: z.object({ state: z.enum(["playing", "paused", "stopped"]) }), audio: z.object({ codec: metadataText.optional(), sampleRate: z.number().int().positive().optional(), bitDepth: z.number().int().positive().optional(), bitrate: z.number().int().positive().optional() }).optional(), rawMetadata: z.unknown().optional(), agentVersion: z.string().min(1) });
 export type PlaybackPayload = z.infer<typeof playbackSchema>;
 
 export const enrichPlayback = async (payload: PlaybackPayload, eventId: string): Promise<void> => {
