@@ -1,15 +1,45 @@
+import AppKit
 import SwiftUI
 
 @main
 struct MusicBridgeApp: App {
     @StateObject private var bridge = BridgeStore()
+    @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
     var body: some Scene {
-        WindowGroup("Music Bridge") {
+        WindowGroup("Music Bridge", id: "main") {
             ContentView().environmentObject(bridge)
                 .frame(minWidth: 500, minHeight: 560)
         }
         .windowResizability(.contentSize)
+        MenuBarExtra("Music Bridge", systemImage: bridge.paired ? "music.note.house.fill" : "exclamationmark.triangle") {
+            BridgeMenu().environmentObject(bridge)
+        }
+    }
+}
+
+private final class AppDelegate: NSObject, NSApplicationDelegate {
+    private var activity: NSObjectProtocol?
+
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        activity = ProcessInfo.processInfo.beginActivity(options: [.userInitiatedAllowingIdleSystemSleep, .automaticTerminationDisabled], reason: "Mantener Music Bridge sincronizado con el WiiM")
+    }
+
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
+}
+
+private struct BridgeMenu: View {
+    @EnvironmentObject private var bridge: BridgeStore
+    @Environment(\.openWindow) private var openWindow
+
+    var body: some View {
+        Text(bridge.paired ? "Music Bridge activo" : "Music Bridge sin emparejar")
+        Text(bridge.status).lineLimit(2)
+        Divider()
+        Button("Mostrar Music Bridge") { openWindow(id: "main"); NSApp.activate(ignoringOtherApps: true) }
+        Button(bridge.launchAtLogin ? "Desactivar inicio automático" : "Iniciar al iniciar sesión") { bridge.toggleLaunchAtLogin() }
+        Divider()
+        Button("Salir de Music Bridge") { NSApp.terminate(nil) }
     }
 }
 

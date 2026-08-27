@@ -1,4 +1,5 @@
 import Foundation
+import ServiceManagement
 import SwiftUI
 
 @MainActor
@@ -7,12 +8,22 @@ final class BridgeStore: ObservableObject {
     @Published var name = "Music Bridge · Mac"
     @Published private(set) var status = "Ingresa el PIN mostrado en Music para comenzar."
     @Published private(set) var paired = false
+    @Published private(set) var launchAtLogin = false
     private let configKey = "bridgeConfiguration"
     private var monitor: Task<Void, Never>?
 
     init() {
         paired = configuration != nil
+        launchAtLogin = SMAppService.mainApp.status == .enabled
         if paired { startMonitoring() }
+    }
+
+    func toggleLaunchAtLogin() {
+        do {
+            if launchAtLogin { try SMAppService.mainApp.unregister() }
+            else { try SMAppService.mainApp.register() }
+            launchAtLogin = SMAppService.mainApp.status == .enabled
+        } catch { status = "No se pudo actualizar el inicio automático: \(error.localizedDescription)" }
     }
 
     deinit { monitor?.cancel() }

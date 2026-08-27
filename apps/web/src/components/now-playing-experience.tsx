@@ -24,6 +24,7 @@ export const NowPlayingExperience = (): React.JSX.Element => {
   const latestRequest = useRef(0);
   const lastPlaybackKey = useRef<string | undefined>(undefined);
   const playbackEtag = useRef<string | undefined>(undefined);
+  const hasPlayback = useRef(false);
   const fastPollingUntil = useRef(0);
 
   useEffect(() => {
@@ -34,16 +35,16 @@ export const NowPlayingExperience = (): React.JSX.Element => {
       latestRequest.current = requestId;
       try {
         const response = await fetch("/api/playback/now", { cache: "no-store", headers: playbackEtag.current ? { "if-none-match": playbackEtag.current } : undefined });
-        if (response.status === 304) return;
+        if (response.status === 304) { if (hasPlayback.current) setLive(true); return; }
         if (!response.ok) throw new Error("No fue posible actualizar la reproducción.");
         const data = await response.json() as { playback: AgentPlaybackPayload | null; album: AlbumCompanionData | null };
         if (requestId !== latestRequest.current) return;
         playbackEtag.current = response.headers.get("etag") ?? undefined;
-        if (!data.playback) { setPlayback(undefined); setAlbum(undefined); setLive(false); setIsResolving(false); return; }
+        if (!data.playback) { hasPlayback.current = false; setPlayback(undefined); setAlbum(undefined); setLive(false); setIsResolving(false); return; }
         const playbackKey = [data.playback.playbackProvider, data.playback.artist.name, data.playback.album?.title, data.playback.track.title].join("|");
         if (lastPlaybackKey.current && lastPlaybackKey.current !== playbackKey) { fastPollingUntil.current = Date.now() + 8_000; setView("album"); }
         lastPlaybackKey.current = playbackKey;
-        setPlayback(data.playback); setLive(true); setIsResolving(!data.album);
+        hasPlayback.current = true; setPlayback(data.playback); setLive(true); setIsResolving(!data.album);
         setAlbum(data.album ?? { id: data.playback.album?.externalId ?? "unresolved", artistId: "unresolved", title: data.playback.album?.title ?? "Single", artist: data.playback.artist.name, artworkUrl: data.playback.album?.artworkUrl, genres: [], tags: [], enrichment: [], tracks: [], editions: [], credits: [], artwork: [] });
       } catch { if (requestId === latestRequest.current) setLive(false); }
       finally { if (!cancelled) timer = window.setTimeout(() => void load(), document.hidden ? 60_000 : Date.now() < fastPollingUntil.current ? 1_000 : 8_000); }
