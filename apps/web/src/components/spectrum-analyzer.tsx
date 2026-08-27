@@ -3,13 +3,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 type ThemeName = "studio" | "neon" | "vintage";
-type VisualizerName = "led" | "scope" | "mirror" | "matrix" | "cascade" | "skyline" | "pulse" | "glow" | "wave" | "rainbow";
+type VisualizerName = "led" | "scope" | "mirror" | "matrix" | "cascade" | "skyline" | "pulse" | "glow" | "wave" | "rainbow" | "nowPlaying" | "prism" | "mountain" | "steps" | "symmetric";
 const themes: Record<ThemeName, { label: string; background: string; grid: string; bars: string[]; glow: string }> = {
   studio: { label: "Estudio", background: "#071008", grid: "#153e1b", bars: ["#12ef38", "#b6ef16", "#ffcb13", "#ff3131"], glow: "#10ff38" },
   neon: { label: "Neón", background: "#080510", grid: "#2b1745", bars: ["#00d8ff", "#7c4dff", "#f02bda", "#ffb000"], glow: "#e838ff" },
   vintage: { label: "Radio", background: "#1b120d", grid: "#59321e", bars: ["#f3aa3c", "#ed6c41", "#d94f78", "#b74f8e"], glow: "#ff9c43" },
 };
-const visualizers: Record<VisualizerName, string> = { led: "Barras", scope: "Oscilo", mirror: "Espejo", matrix: "Matriz", cascade: "Cascada", skyline: "Skyline", pulse: "Pulso", glow: "Neón", wave: "Onda", rainbow: "Arcoíris" };
+const visualizers: Record<VisualizerName, string> = { led: "Barras", scope: "Oscilo", mirror: "Espejo", matrix: "Matriz", cascade: "Cascada", skyline: "Skyline", pulse: "Pulso", glow: "Neón", wave: "Onda", rainbow: "Arcoíris", nowPlaying: "Now playing", prism: "Prisma LED", mountain: "Montaña LED", steps: "Pasos LED", symmetric: "Simetría LED" };
 
 const WaveIcon = (): React.JSX.Element => <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h2l2.1-6 3.2 12L13 3l2.1 15L17 9l1.3 3H21" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.7" /></svg>;
 const FullscreenIcon = (): React.JSX.Element => <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.7" /></svg>;
@@ -19,7 +19,6 @@ export const SpectrumAnalyzer = ({ track, album, artist }: { track: string; albu
   const [theme, setTheme] = useState<ThemeName>("studio");
   const [visualizer, setVisualizer] = useState<VisualizerName>("led");
   const [message, setMessage] = useState("El analizador escucha el ambiente de esta habitación.");
-  const [tickerIndex, setTickerIndex] = useState(0);
   const canvas = useRef<HTMLCanvasElement>(null);
   const panel = useRef<HTMLElement>(null);
   const analyser = useRef<AnalyserNode | undefined>(undefined);
@@ -63,11 +62,6 @@ export const SpectrumAnalyzer = ({ track, album, artist }: { track: string; albu
 
   useEffect(() => () => stop(), [stop]);
   useEffect(() => {
-    setTickerIndex(0);
-    const rotation = window.setInterval(() => setTickerIndex((index) => index + 1), 9_000);
-    return () => window.clearInterval(rotation);
-  }, [track, album, artist]);
-  useEffect(() => {
     if (!open) return;
     const element = canvas.current;
     if (!element) return;
@@ -84,9 +78,7 @@ export const SpectrumAnalyzer = ({ track, album, artist }: { track: string; albu
     const draw = (): void => {
       const activeTheme = themes[theme];
       const width = element.clientWidth; const height = element.clientHeight;
-      context.fillStyle = activeTheme.background; context.fillRect(0, 0, width, height);
-      context.strokeStyle = activeTheme.grid; context.lineWidth = 1;
-      for (let y = 0; y < height; y += Math.max(26, height / 12)) { context.beginPath(); context.moveTo(0, y); context.lineTo(width, y); context.stroke(); }
+      context.fillStyle = "#000"; context.fillRect(0, 0, width, height);
       const barCount = Math.min(64, Math.max(28, Math.floor(width / 18)));
       const gap = Math.max(3, width / barCount * .23); const barWidth = (width - gap * (barCount - 1)) / barCount;
       if (analyser.current) analyser.current.getByteFrequencyData(bins);
@@ -97,6 +89,11 @@ export const SpectrumAnalyzer = ({ track, album, artist }: { track: string; albu
       if (visualizer === "scope") {
         context.beginPath(); context.lineWidth = 3; context.strokeStyle = activeTheme.bars[0];
         waveform.forEach((sample, index) => { const x = index / (waveform.length - 1) * width; const y = (sample / 255) * height; index ? context.lineTo(x, y) : context.moveTo(x, y); }); context.stroke();
+      } else if (visualizer === "nowPlaying") {
+        const text = `NOW PLAYING — ${track} · ${album} · ${artist}`.toUpperCase(); const fontSize = Math.max(18, Math.min(64, height * .45));
+        context.font = `600 ${fontSize}px monospace`; context.textBaseline = "middle"; context.fillStyle = "#f8f4e8"; context.shadowBlur = 12; context.shadowColor = activeTheme.glow;
+        const textWidth = context.measureText(text).width; const gap = fontSize * 1.5; const offset = performance.now() / 32 % (textWidth + gap); const x = width - offset;
+        context.fillText(text, x, height / 2); context.fillText(text, x + textWidth + gap, height / 2);
       } else if (visualizer === "skyline") {
         const baseline = height * .58; const skylineCount = Math.min(42, Math.max(22, Math.floor(width / 12))); const skylineGap = Math.max(2, width / skylineCount * .2); const skylineWidth = (width - skylineGap * (skylineCount - 1)) / skylineCount;
         context.shadowBlur = 12;
@@ -116,6 +113,22 @@ export const SpectrumAnalyzer = ({ track, album, artist }: { track: string; albu
       } else if (visualizer === "rainbow") {
         const rainbowCount = Math.min(30, Math.max(16, Math.floor(width / 17))); const rainbowGap = Math.max(3, width / rainbowCount * .25); const rainbowWidth = (width - rainbowGap * (rainbowCount - 1)) / rainbowCount; const baseline = height * .64;
         for (let index = 0; index < rainbowCount; index += 1) { const amount = level(index, rainbowCount); const cells = Math.max(1, Math.ceil(amount * 14)); const hue = 42 + index / Math.max(rainbowCount - 1, 1) * 260; for (let cell = 0; cell < cells; cell += 1) { const y = baseline - (cell + 1) * 9; context.fillStyle = `hsl(${hue} 86% ${Math.max(43, 68 - cell * 1.2)}%)`; context.fillRect(index * (rainbowWidth + rainbowGap), y, rainbowWidth, 6); context.globalAlpha = .16 * (1 - cell / Math.max(cells, 1)); context.fillRect(index * (rainbowWidth + rainbowGap), baseline + cell * 9, rainbowWidth, 6); context.globalAlpha = 1; } }
+      } else if (visualizer === "prism") {
+        const columns = Math.min(27, Math.max(14, Math.floor(width / 18))); const gap = Math.max(3, width / columns * .28); const cellWidth = (width - gap * (columns - 1)) / columns; const rows = 11;
+        context.shadowBlur = 10; context.shadowColor = "#0b6cff";
+        for (let index = 0; index < columns; index += 1) { const cells = Math.max(1, Math.ceil(level(index, columns) * rows)); const hue = index / Math.max(columns - 1, 1) * 270; for (let row = 0; row < cells; row += 1) { const y = height - 9 - (row + 1) * (height - 18) / rows; context.fillStyle = `hsl(${hue} 90% ${Math.max(48, 68 - row * 2)}%)`; context.fillRect(index * (cellWidth + gap), y, cellWidth, Math.max(3, height / rows - 4)); } }
+      } else if (visualizer === "mountain") {
+        const columns = Math.min(28, Math.max(15, Math.floor(width / 17))); const gap = Math.max(3, width / columns * .25); const cellWidth = (width - gap * (columns - 1)) / columns; const rows = 12;
+        context.shadowBlur = 11; context.shadowColor = "#0088ff";
+        for (let index = 0; index < columns; index += 1) { const source = Math.abs(index / Math.max(columns - 1, 1) - .5) * 2; const shaped = Math.max(level(index, columns), .17 + (1 - source) * .35); const cells = Math.min(rows, Math.ceil(shaped * rows)); for (let row = 0; row < cells; row += 1) { const y = height - 9 - (row + 1) * (height - 18) / rows; context.fillStyle = row > cells - 3 ? "#477dff" : "#08a7ff"; context.fillRect(index * (cellWidth + gap), y, cellWidth, Math.max(3, height / rows - 4)); } }
+      } else if (visualizer === "steps") {
+        const columns = Math.min(34, Math.max(18, Math.floor(width / 14))); const gap = Math.max(2, width / columns * .22); const cellWidth = (width - gap * (columns - 1)) / columns; const rows = 8;
+        context.shadowBlur = 9; context.shadowColor = "#176cff";
+        for (let index = 0; index < columns; index += 1) { const cells = Math.max(1, Math.ceil(level(index, columns) * rows)); for (let row = 0; row < cells; row += 1) { const y = height - 8 - (row + 1) * (height - 16) / rows; context.fillStyle = row === cells - 1 ? "#91b5ff" : "#1268ef"; context.fillRect(index * (cellWidth + gap), y, cellWidth, Math.max(3, height / rows - 4)); } }
+      } else if (visualizer === "symmetric") {
+        const columns = Math.min(25, Math.max(14, Math.floor(width / 19))); const gap = Math.max(3, width / columns * .28); const cellWidth = (width - gap * (columns - 1)) / columns; const middle = height / 2; const rows = 7;
+        context.shadowBlur = 12; context.shadowColor = "#ff42dc";
+        for (let index = 0; index < columns; index += 1) { const cells = Math.max(1, Math.ceil(level(index, columns) * rows)); const hue = 200 + index / Math.max(columns - 1, 1) * 150; for (let row = 0; row < cells; row += 1) { context.fillStyle = `hsl(${hue} 92% ${Math.max(48, 70 - row * 3)}%)`; const y = middle - (row + 1) * 9; context.fillRect(index * (cellWidth + gap), y, cellWidth, 6); context.fillRect(index * (cellWidth + gap), middle + row * 9 - 6, cellWidth, 6); } }
       } else {
         for (let index = 0; index < barCount; index += 1) {
           const amount = level(index); const total = Math.max(8, amount * (height - 34)); const segments = Math.max(1, Math.ceil(total / 13));
@@ -138,8 +151,5 @@ export const SpectrumAnalyzer = ({ track, album, artist }: { track: string; albu
     if (document.fullscreenElement === panel.current) await document.exitFullscreen();
     else await panel.current?.requestFullscreen();
   };
-  const tickerMessages = [`NOW PLAYING — ${track} · ${album} · ${artist}`, `NOW PLAYING — ${artist} · ${track} · ${album}`, `NOW PLAYING — ${album} · ${artist} · ${track}`];
-  const ticker = tickerMessages[tickerIndex % tickerMessages.length];
-
-  return <div className="spectrum-container">{!open ? <button className="spectrum-trigger" type="button" aria-label="Abrir analizador de espectro" onClick={() => void start()}><WaveIcon /><span>Analizador</span></button> : <section ref={panel} className={`spectrum-panel ${theme}`} aria-label="Analizador de espectro"><header><div className="spectrum-actions"><div className="theme-picker" aria-label="Color del analizador">{(Object.keys(themes) as ThemeName[]).map((name) => <button className={name === theme ? "selected" : ""} key={name} onClick={() => setTheme(name)}>{themes[name].label}</button>)}</div><button className="spectrum-fullscreen" type="button" aria-label="Mostrar el analizador a pantalla completa" title="Pantalla completa" onClick={() => void toggleFullscreen().catch(() => undefined)}><FullscreenIcon /></button><button className="spectrum-close" type="button" onClick={close}>Cerrar</button></div></header><div className="spectrum-stage"><canvas ref={canvas} /><div className="spectrum-scale"><span>40 Hz</span><span>160 Hz</span><span>630 Hz</span><span>2.5 kHz</span><span>10 kHz</span><span>16 kHz</span></div></div>{message ? <footer><span className="spectrum-led" />{message}</footer> : null}<div className="spectrum-now-playing" aria-live="polite"><div><span>{ticker}</span><span aria-hidden="true">{ticker}</span></div></div><div className="visualizer-picker" aria-label="Tipo de analizador">{(Object.keys(visualizers) as VisualizerName[]).map((name) => <button className={name === visualizer ? "selected" : ""} key={name} onClick={() => setVisualizer(name)}>{visualizers[name]}</button>)}</div></section>}</div>;
+  return <div className="spectrum-container">{!open ? <button className="spectrum-trigger" type="button" aria-label="Abrir analizador de espectro" onClick={() => void start()}><WaveIcon /><span>Analizador</span></button> : <section ref={panel} className={`spectrum-panel ${theme}`} aria-label="Analizador de espectro"><header><div className="spectrum-actions"><div className="theme-picker" aria-label="Color del analizador">{(Object.keys(themes) as ThemeName[]).map((name) => <button className={name === theme ? "selected" : ""} key={name} onClick={() => setTheme(name)}>{themes[name].label}</button>)}</div><button className="spectrum-fullscreen" type="button" aria-label="Mostrar el analizador a pantalla completa" title="Pantalla completa" onClick={() => void toggleFullscreen().catch(() => undefined)}><FullscreenIcon /></button><button className="spectrum-close" type="button" onClick={close}>Cerrar</button></div></header><div className="spectrum-stage"><canvas ref={canvas} /></div>{message ? <footer><span className="spectrum-led" />{message}</footer> : null}<div className="visualizer-picker" aria-label="Tipo de analizador">{(Object.keys(visualizers) as VisualizerName[]).map((name) => <button className={name === visualizer ? "selected" : ""} key={name} onClick={() => setVisualizer(name)}>{visualizers[name]}</button>)}</div></section>}</div>;
 };
