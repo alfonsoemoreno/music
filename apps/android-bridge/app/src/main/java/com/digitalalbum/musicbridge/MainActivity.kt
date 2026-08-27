@@ -18,6 +18,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.EditText
+import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
@@ -30,6 +31,9 @@ class MainActivity : Activity() {
     private lateinit var status: TextView
     private lateinit var connect: Button
     private lateinit var linkScreen: Button
+    private lateinit var root: FrameLayout
+    private lateinit var viewport: FrameLayout
+    private lateinit var content: LinearLayout
     private val statusHandler = Handler(Looper.getMainLooper())
     private val refreshStatus = object : Runnable {
         override fun run() {
@@ -41,12 +45,12 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         requestRelevantPermissions()
-        val padding = dp(24)
-        val layout = LinearLayout(this).apply {
+        content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER_HORIZONTAL
-            setPadding(padding, padding, padding, padding)
-            setBackgroundColor(Color.rgb(18, 15, 14))
+            // The viewport centres this column vertically whenever there is room;
+            // a ScrollView still makes every control reachable on compact screens.
+            setPadding(0, dp(28), 0, dp(28))
         }
         val mark = TextView(this).apply { text = "M"; textSize = 26f; gravity = Gravity.CENTER; setTextColor(Color.rgb(32, 24, 20)); typeface = Typeface.create("serif", Typeface.BOLD); background = rounded(Color.rgb(214, 185, 132), 0); layoutParams = LinearLayout.LayoutParams(dp(54), dp(54)).apply { gravity = Gravity.CENTER_HORIZONTAL; bottomMargin = dp(22) } }
         val eyebrow = TextView(this).apply { text = "DIGITAL ALBUM COMPANION"; textSize = 11f; letterSpacing = .14f; gravity = Gravity.CENTER; setTextColor(Color.rgb(179, 157, 135)) }
@@ -62,18 +66,29 @@ class MainActivity : Activity() {
         linkScreen = Button(this).apply { text = "VINCULAR OTRA PANTALLA"; setTextColor(Color.rgb(197, 172, 138)); textSize = 11f; letterSpacing = .08f; background = rounded(Color.TRANSPARENT, dp(2), Color.rgb(94, 76, 64)); layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(48)).apply { topMargin = dp(10) }; visibility = View.GONE }
         status = TextView(this).apply { textSize = 15f; setTextColor(Color.rgb(221, 207, 191)); setLineSpacing(dp(3).toFloat(), 1f); background = rounded(Color.rgb(38, 30, 26), dp(2), Color.rgb(90, 73, 62)); setPadding(dp(16), dp(15), dp(16), dp(15)); layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(20) } }
         val privacy = TextView(this).apply { text = "✓ Sin puertos abiertos  ·  ✓ Firma protegida en Android  ·  ✓ Solo envía cambios de reproducción"; textSize = 11f; gravity = Gravity.CENTER; setTextColor(Color.rgb(139, 124, 111)); setLineSpacing(dp(2).toFloat(), 1f); setPadding(dp(8), dp(20), dp(8), 0) }
-        layout.addView(mark)
-        layout.addView(eyebrow)
-        layout.addView(title)
-        layout.addView(description)
-        layout.addView(enrollmentCode)
-        layout.addView(bridgeName)
-        layout.addView(connect)
-        layout.addView(linkScreen)
-        layout.addView(status)
-        layout.addView(privacy)
-        setContentView(ScrollView(this).apply { addView(layout, ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)) })
+        content.addView(mark)
+        content.addView(eyebrow)
+        content.addView(title)
+        content.addView(description)
+        content.addView(enrollmentCode)
+        content.addView(bridgeName)
+        content.addView(connect)
+        content.addView(linkScreen)
+        content.addView(status)
+        content.addView(privacy)
+
+        root = FrameLayout(this).apply { setBackgroundColor(Color.rgb(18, 15, 14)) }
+        viewport = FrameLayout(this)
+        val scroll = ScrollView(this).apply {
+            isFillViewport = true
+            clipToPadding = false
+            addView(viewport, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        }
+        viewport.addView(content)
+        root.addView(scroll, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+        setContentView(root)
         enableImmersiveLayout()
+        root.post { updateResponsiveLayout() }
 
         BridgePreferences(this).configuration()?.let {
             enrollmentCode.visibility = View.GONE
@@ -106,6 +121,21 @@ class MainActivity : Activity() {
 
     private fun rounded(color: Int, radius: Int, stroke: Int? = null): GradientDrawable = GradientDrawable().apply { setColor(color); cornerRadius = radius.toFloat(); stroke?.let { setStroke(dp(1), it) } }
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
+
+    /** Keeps forms comfortably readable on tablets while centring the experience on every screen size. */
+    private fun updateResponsiveLayout() {
+        if (!::root.isInitialized) return
+        val width = root.width.takeIf { it > 0 } ?: resources.displayMetrics.widthPixels
+        val height = root.height.takeIf { it > 0 } ?: resources.displayMetrics.heightPixels
+        val horizontalInset = dp(if (resources.configuration.screenWidthDp >= 600) 48 else 24)
+        val maximumContentWidth = dp(560)
+        val contentWidth = minOf(maximumContentWidth, (width - horizontalInset * 2).coerceAtLeast(dp(280)))
+        viewport.minimumHeight = height
+        content.layoutParams = FrameLayout.LayoutParams(contentWidth, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER)
+        // On expansive displays the design grows slightly without making controls or text oversized.
+        val titleSize = if (resources.configuration.screenWidthDp >= 600) 40f else 34f
+        (content.getChildAt(2) as? TextView)?.textSize = titleSize
+    }
 
     /** Uses the whole display while preserving Android's swipe-to-reveal system controls. */
     private fun enableImmersiveLayout() {
@@ -193,6 +223,11 @@ class MainActivity : Activity() {
         super.onResume()
         enableImmersiveLayout()
         statusHandler.post(refreshStatus)
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) root.post { updateResponsiveLayout() }
     }
 
     override fun onPause() {

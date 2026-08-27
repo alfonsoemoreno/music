@@ -1,0 +1,345 @@
+{
+  "builtTestProducts" : [
+
+  ],
+  "copyCommands" : {
+
+  },
+  "explicitTargetDependencyImportCheckingMode" : {
+    "none" : {
+
+    }
+  },
+  "generatedSourceTargetSet" : [
+
+  ],
+  "pluginDescriptions" : [
+
+  ],
+  "swiftCommands" : {
+    "C.MusicBridge-arm64-apple-macosx-release.module" : {
+      "executable" : "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "fileList" : "/Users/alfonsomoreno/Documents/ChatGPT/music/apps/macos-bridge/.build/arm64-apple-macosx/release/MusicBridge.build/sources",
+      "importPath" : "/Users/alfonsomoreno/Documents/ChatGPT/music/apps/macos-bridge/.build/arm64-apple-macosx/release/Modules",
+      "inputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/alfonsomoreno/Documents/ChatGPT/music/apps/macos-bridge/Sources/MusicBridge/BridgeStore.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/alfonsomoreno/Documents/ChatGPT/music/apps/macos-bridge/Sources/MusicBridge/CloudClient.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/alfonsomoreno/Documents/ChatGPT/music/apps/macos-bridge/Sources/MusicBridge/KeychainSigner.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/alfonsomoreno/Documents/ChatGPT/music/apps/macos-bridge/Sources/MusicBridge/Models.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/alfonsomoreno/Documents/ChatGPT/music/apps/macos-bridge/Sources/MusicBridge/MusicBridgeApp.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/alfonsomoreno/Documents/ChatGPT/music/apps/macos-bridge/Sources/MusicBridge/WiiMClient.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/alfonsomoreno/Documents/ChatGPT/music/apps/macos-bridge/Sources/MusicBridge/WiiMDiscovery.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/alfonsomoreno/Documents/ChatGPT/music/apps/macos-bridge/.build/arm64-apple-macosx/release/swift-version--58304C5D6DBC2206.txt"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/alfonsomoreno/Documents/ChatGPT/music/apps/macos-bridge/.build/arm64-apple-macosx/release/MusicBridge.build/sources"
+        }
+      ],
+      "isLibrary" : false,
+      "moduleName" : "MusicBridge",
+      "moduleOutputPath" : "/Users/alfonsomoreno/Documents/ChatGPT/music/apps/macos-bridge/.build/arm64-apple-macosx/release/Modules/MusicBridge.swiftmodule",
+      "objects" : [
+        "/Users/alfonsomoreno/Documents/ChatGPT/music/apps/macos-bridge/.build/arm64-apple-macosx/release/MusicBridge.build/BridgeStore.swift.o",
+        "/Users/alfonsomoreno/Documents/ChatGPT/music/apps/macos-bridge/.build/arm64-apple-macosx/release/MusicBridge.build/CloudClient.swift.o",
+        "/Users/alfonsomoreno/Documents/ChatGPT/music/apps/macos-bridge/.build/arm64-apple-macosx/release/MusicBridge.build/KeychainSigner.swift.o",
+        "/Users/alfonsomoreno/Documents/ChatGPT/music/apps/macos-bridge/.build/arm64-apple-macosx/release/MusicBridge.build/Models.swift.o",
+        "/Users/alfonsomoreno/Documents/ChatGPT/music/apps/macos-bridge/.build/arm64-apple-macosx/release/MusicBridge.build/MusicBridgeApp.swift.o",
+        "/Users/alfonsomoreno/Documents/ChatGPT/music/apps/macos-bridge/.build/arm64-apple-macosx/release/MusicBridge.build/WiiMClient.swift.o",
+        "/Users/alfonsomoreno/Documents/ChatGPT/music/apps/macos-bridge/.build/arm64-apple-macosx/release/MusicBridge.build/WiiMDiscovery.swift.o"
+      ],
+      "otherArguments" : [
+        "-target",
+        "arm64-apple-macosx14.0",
+        "-whole-module-optimization",
+        "-num-threads",
+        "8",
+        "-serialize-diagnostics",
+        "-O",
+        "-j8",
+        "-DSWIFT_PACKAGE",
+        "-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+        "-module-cache-path",
+        "/Users/alfonsomoreno/Documents/ChatGPT/music/apps/macos-bridge/.build/arm64-apple-macosx/release/ModuleCache",
+        "-parseable-output",
+        "-Xfrontend",
+        "-entry-point-function-name",
+        "-Xfrontend",
+        "MusicBridge_main",
+        "-swift-version",
+        "6",
+        "-plugin-path",
+        "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing",
+        "-sdk",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk",
+        "-F",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-I",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-L",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-g",
+        "-Xcc",
+        "-isysroot",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk",
+        "-Xcc",
+        "-F",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-Xcc",
+        "-fPIC",
+        "-Xcc",
+        "-g",
+        "-package-name",
+        "macos_bridge"
+      ],
+      "outputFileMapPath" : "/Users/alfonsomoreno/Documents/ChatGPT/music/apps/macos-bridge/.build/arm64-apple-macosx/release/MusicBridge.build/output-file-map.json",
+      "outputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/alfonsomoreno/Documents/ChatGPT/music/apps/macos-bridge/.build/arm64-apple-macosx/release/MusicBridge.build/BridgeStore.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/alfonsomoreno/Documents/ChatGPT/music/apps/macos-bridge/.build/arm64-apple-macosx/release/MusicBridge.build/CloudClient.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/alfonsomoreno/Documents/ChatGPT/music/apps/macos-bridge/.build/arm64-apple-macosx/release/MusicBridge.build/KeychainSigner.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/alfonsomoreno/Documents/ChatGPT/music/apps/macos-bridge/.build/arm64-apple-macosx/release/MusicBridge.build/Models.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/alfonsomoreno/Documents/ChatGPT/music/apps/macos-bridge/.build/arm64-apple-macosx/release/MusicBridge.build/MusicBridgeApp.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/alfonsomoreno/Documents/ChatGPT/music/apps/macos-bridge/.build/arm64-apple-macosx/release/MusicBridge.build/WiiMClient.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/alfonsomoreno/Documents/ChatGPT/music/apps/macos-bridge/.build/arm64-apple-macosx/release/MusicBridge.build/WiiMDiscovery.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/alfonsomoreno/Documents/ChatGPT/music/apps/macos-bridge/.build/arm64-apple-macosx/release/Modules/MusicBridge.swiftmodule"
+        }
+      ],
+      "prepareForIndexing" : false,
+      "sources" : [
+        "/Users/alfonsomoreno/Documents/ChatGPT/music/apps/macos-bridge/Sources/MusicBridge/BridgeStore.swift",
+        "/Users/alfonsomoreno/Documents/ChatGPT/music/apps/macos-bridge/Sources/MusicBridge/CloudClient.swift",
+        "/Users/alfonsomoreno/Documents/ChatGPT/music/apps/macos-bridge/Sources/MusicBridge/KeychainSigner.swift",
+        "/Users/alfonsomoreno/Documents/ChatGPT/music/apps/macos-bridge/Sources/MusicBridge/Models.swift",
+        "/Users/alfonsomoreno/Documents/ChatGPT/music/apps/macos-bridge/Sources/MusicBridge/MusicBridgeApp.swift",
+        "/Users/alfonsomoreno/Documents/ChatGPT/music/apps/macos-bridge/Sources/MusicBridge/WiiMClient.swift",
+        "/Users/alfonsomoreno/Documents/ChatGPT/music/apps/macos-bridge/Sources/MusicBridge/WiiMDiscovery.swift"
+      ],
+      "tempsPath" : "/Users/alfonsomoreno/Documents/ChatGPT/music/apps/macos-bridge/.build/arm64-apple-macosx/release/MusicBridge.build",
+      "wholeModuleOptimization" : true
+    }
+  },
+  "swiftFrontendCommands" : {
+
+  },
+  "swiftTargetScanArgs" : {
+    "MusicBridge" : [
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc",
+      "-module-name",
+      "MusicBridge",
+      "-package-name",
+      "macos_bridge",
+      "-c",
+      "/Users/alfonsomoreno/Documents/ChatGPT/music/apps/macos-bridge/Sources/MusicBridge/BridgeStore.swift",
+      "/Users/alfonsomoreno/Documents/ChatGPT/music/apps/macos-bridge/Sources/MusicBridge/CloudClient.swift",
+      "/Users/alfonsomoreno/Documents/ChatGPT/music/apps/macos-bridge/Sources/MusicBridge/KeychainSigner.swift",
+      "/Users/alfonsomoreno/Documents/ChatGPT/music/apps/macos-bridge/Sources/MusicBridge/Models.swift",
+      "/Users/alfonsomoreno/Documents/ChatGPT/music/apps/macos-bridge/Sources/MusicBridge/MusicBridgeApp.swift",
+      "/Users/alfonsomoreno/Documents/ChatGPT/music/apps/macos-bridge/Sources/MusicBridge/WiiMClient.swift",
+      "/Users/alfonsomoreno/Documents/ChatGPT/music/apps/macos-bridge/Sources/MusicBridge/WiiMDiscovery.swift",
+      "-I",
+      "/Users/alfonsomoreno/Documents/ChatGPT/music/apps/macos-bridge/.build/arm64-apple-macosx/release/Modules",
+      "-target",
+      "arm64-apple-macosx14.0",
+      "-whole-module-optimization",
+      "-num-threads",
+      "8",
+      "-serialize-diagnostics",
+      "-O",
+      "-j8",
+      "-DSWIFT_PACKAGE",
+      "-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+      "-module-cache-path",
+      "/Users/alfonsomoreno/Documents/ChatGPT/music/apps/macos-bridge/.build/arm64-apple-macosx/release/ModuleCache",
+      "-parseable-output",
+      "-Xfrontend",
+      "-entry-point-function-name",
+      "-Xfrontend",
+      "MusicBridge_main",
+      "-swift-version",
+      "6",
+      "-plugin-path",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing",
+      "-sdk",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk",
+      "-F",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-I",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-L",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-g",
+      "-Xcc",
+      "-isysroot",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX26.5.sdk",
+      "-Xcc",
+      "-F",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-Xcc",
+      "-fPIC",
+      "-Xcc",
+      "-g",
+      "-package-name",
+      "macos_bridge",
+      "-driver-use-frontend-path",
+      "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"
+    ]
+  },
+  "targetDependencyMap" : {
+    "MusicBridge" : [
+
+    ]
+  },
+  "testDiscoveryCommands" : {
+
+  },
+  "testEntryPointCommands" : {
+
+  },
+  "traitConfiguration" : {
+    "default" : {
+
+    }
+  },
+  "writeCommands" : {
+    "/Users/alfonsomoreno/Documents/ChatGPT/music/apps/macos-bridge/.build/arm64-apple-macosx/release/MusicBridge.build/sources" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<sources-file-list>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/alfonsomoreno/Documents/ChatGPT/music/apps/macos-bridge/Sources/MusicBridge/BridgeStore.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/alfonsomoreno/Documents/ChatGPT/music/apps/macos-bridge/Sources/MusicBridge/CloudClient.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/alfonsomoreno/Documents/ChatGPT/music/apps/macos-bridge/Sources/MusicBridge/KeychainSigner.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/alfonsomoreno/Documents/ChatGPT/music/apps/macos-bridge/Sources/MusicBridge/Models.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/alfonsomoreno/Documents/ChatGPT/music/apps/macos-bridge/Sources/MusicBridge/MusicBridgeApp.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/alfonsomoreno/Documents/ChatGPT/music/apps/macos-bridge/Sources/MusicBridge/WiiMClient.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/alfonsomoreno/Documents/ChatGPT/music/apps/macos-bridge/Sources/MusicBridge/WiiMDiscovery.swift"
+        }
+      ],
+      "outputFilePath" : "/Users/alfonsomoreno/Documents/ChatGPT/music/apps/macos-bridge/.build/arm64-apple-macosx/release/MusicBridge.build/sources"
+    },
+    "/Users/alfonsomoreno/Documents/ChatGPT/music/apps/macos-bridge/.build/arm64-apple-macosx/release/MusicBridge.product/Objects.LinkFileList" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<link-file-list>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/alfonsomoreno/Documents/ChatGPT/music/apps/macos-bridge/.build/arm64-apple-macosx/release/MusicBridge.build/BridgeStore.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/alfonsomoreno/Documents/ChatGPT/music/apps/macos-bridge/.build/arm64-apple-macosx/release/MusicBridge.build/CloudClient.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/alfonsomoreno/Documents/ChatGPT/music/apps/macos-bridge/.build/arm64-apple-macosx/release/MusicBridge.build/KeychainSigner.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/alfonsomoreno/Documents/ChatGPT/music/apps/macos-bridge/.build/arm64-apple-macosx/release/MusicBridge.build/Models.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/alfonsomoreno/Documents/ChatGPT/music/apps/macos-bridge/.build/arm64-apple-macosx/release/MusicBridge.build/MusicBridgeApp.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/alfonsomoreno/Documents/ChatGPT/music/apps/macos-bridge/.build/arm64-apple-macosx/release/MusicBridge.build/WiiMClient.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/alfonsomoreno/Documents/ChatGPT/music/apps/macos-bridge/.build/arm64-apple-macosx/release/MusicBridge.build/WiiMDiscovery.swift.o"
+        }
+      ],
+      "outputFilePath" : "/Users/alfonsomoreno/Documents/ChatGPT/music/apps/macos-bridge/.build/arm64-apple-macosx/release/MusicBridge.product/Objects.LinkFileList"
+    },
+    "/Users/alfonsomoreno/Documents/ChatGPT/music/apps/macos-bridge/.build/arm64-apple-macosx/release/swift-version--58304C5D6DBC2206.txt" : {
+      "alwaysOutOfDate" : true,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<swift-get-version>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc"
+        }
+      ],
+      "outputFilePath" : "/Users/alfonsomoreno/Documents/ChatGPT/music/apps/macos-bridge/.build/arm64-apple-macosx/release/swift-version--58304C5D6DBC2206.txt"
+    }
+  }
+}
