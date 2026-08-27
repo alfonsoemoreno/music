@@ -3,13 +3,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 type ThemeName = "studio" | "neon" | "vintage";
-type VisualizerName = "led" | "scope" | "mirror" | "matrix" | "cascade";
+type VisualizerName = "led" | "scope" | "mirror" | "matrix" | "cascade" | "skyline" | "pulse" | "glow" | "wave" | "rainbow";
 const themes: Record<ThemeName, { label: string; background: string; grid: string; bars: string[]; glow: string }> = {
   studio: { label: "Estudio", background: "#071008", grid: "#153e1b", bars: ["#12ef38", "#b6ef16", "#ffcb13", "#ff3131"], glow: "#10ff38" },
   neon: { label: "Neón", background: "#080510", grid: "#2b1745", bars: ["#00d8ff", "#7c4dff", "#f02bda", "#ffb000"], glow: "#e838ff" },
   vintage: { label: "Radio", background: "#1b120d", grid: "#59321e", bars: ["#f3aa3c", "#ed6c41", "#d94f78", "#b74f8e"], glow: "#ff9c43" },
 };
-const visualizers: Record<VisualizerName, string> = { led: "Barras", scope: "Oscilo", mirror: "Espejo", matrix: "Matriz", cascade: "Cascada" };
+const visualizers: Record<VisualizerName, string> = { led: "Barras", scope: "Oscilo", mirror: "Espejo", matrix: "Matriz", cascade: "Cascada", skyline: "Skyline", pulse: "Pulso", glow: "Neón", wave: "Onda", rainbow: "Arcoíris" };
 
 const WaveIcon = (): React.JSX.Element => <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h2l2.1-6 3.2 12L13 3l2.1 15L17 9l1.3 3H21" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.7" /></svg>;
 const FullscreenIcon = (): React.JSX.Element => <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.7" /></svg>;
@@ -91,6 +91,25 @@ export const SpectrumAnalyzer = (): React.JSX.Element => {
       if (visualizer === "scope") {
         context.beginPath(); context.lineWidth = 3; context.strokeStyle = activeTheme.bars[0];
         waveform.forEach((sample, index) => { const x = index / (waveform.length - 1) * width; const y = (sample / 255) * height; index ? context.lineTo(x, y) : context.moveTo(x, y); }); context.stroke();
+      } else if (visualizer === "skyline") {
+        const baseline = height * .58; const skylineCount = Math.min(42, Math.max(22, Math.floor(width / 12))); const skylineGap = Math.max(2, width / skylineCount * .2); const skylineWidth = (width - skylineGap * (skylineCount - 1)) / skylineCount;
+        context.shadowBlur = 12;
+        for (let index = 0; index < skylineCount; index += 1) { const amount = level(index, skylineCount); const cells = Math.max(1, Math.ceil(amount * 18)); for (let cell = 0; cell < cells; cell += 1) { const y = baseline - (cell + 1) * 7; context.fillStyle = color(cell / 18); context.fillRect(index * (skylineWidth + skylineGap), y, skylineWidth, 4.5); context.globalAlpha = .18 * (1 - cell / Math.max(cells, 1)); context.fillRect(index * (skylineWidth + skylineGap), baseline + cell * 7, skylineWidth, 4.5); context.globalAlpha = 1; } }
+        context.fillStyle = activeTheme.bars[0]; context.fillRect(0, baseline, width, 2);
+      } else if (visualizer === "pulse") {
+        const middle = height / 2; const pulseCount = Math.min(34, Math.max(18, Math.floor(width / 16))); const pulseGap = Math.max(3, width / pulseCount * .35); const pulseWidth = (width - pulseGap * (pulseCount - 1)) / pulseCount;
+        for (let index = 0; index < pulseCount; index += 1) { const amount = level(index, pulseCount); const cells = Math.max(1, Math.ceil(amount * 13)); const shade = color(amount); context.fillStyle = shade; for (let cell = 0; cell < cells; cell += 1) { const y = middle - (cell + 1) * 8; context.fillRect(index * (pulseWidth + pulseGap), y, pulseWidth, 5); context.fillRect(index * (pulseWidth + pulseGap), middle + cell * 8 - 5, pulseWidth, 5); } }
+      } else if (visualizer === "glow") {
+        const glowCount = Math.min(26, Math.max(14, Math.floor(width / 20))); const glowGap = Math.max(3, width / glowCount * .23); const glowWidth = (width - glowGap * (glowCount - 1)) / glowCount; const rows = 16;
+        context.shadowBlur = 18; context.shadowColor = activeTheme.glow;
+        for (let index = 0; index < glowCount; index += 1) { const amount = level(index, glowCount); const cells = Math.max(1, Math.ceil(amount * rows)); for (let cell = 0; cell < cells; cell += 1) { const y = height - 10 - (cell + 1) * (height - 20) / rows; context.fillStyle = cell / rows < .32 ? activeTheme.bars[0] : color(cell / rows); context.fillRect(index * (glowWidth + glowGap), y, glowWidth, Math.max(3, height / rows - 4)); } }
+      } else if (visualizer === "wave") {
+        const middle = height / 2; const points = Math.min(96, Math.max(42, Math.floor(width / 7)));
+        context.beginPath(); context.moveTo(0, middle); for (let index = 0; index < points; index += 1) { const x = index / (points - 1) * width; const value = analyser.current ? Math.abs(waveform[Math.min(waveform.length - 1, Math.floor(index / points * waveform.length))] - 128) / 128 : .04; context.lineTo(x, middle - Math.max(3, value * height * .46)); } context.lineTo(width, middle); context.closePath(); const topGradient = context.createLinearGradient(0, 0, width, 0); topGradient.addColorStop(0, activeTheme.bars[0]); topGradient.addColorStop(.55, activeTheme.bars[1]); topGradient.addColorStop(1, activeTheme.bars[3]); context.fillStyle = topGradient; context.globalAlpha = .8; context.fill(); context.globalAlpha = 1;
+        context.beginPath(); context.moveTo(0, middle); for (let index = 0; index < points; index += 1) { const x = index / (points - 1) * width; const value = analyser.current ? Math.abs(waveform[Math.min(waveform.length - 1, Math.floor(index / points * waveform.length))] - 128) / 128 : .04; context.lineTo(x, middle + Math.max(3, value * height * .46)); } context.lineTo(width, middle); context.closePath(); context.fillStyle = topGradient; context.globalAlpha = .65; context.fill(); context.globalAlpha = 1; context.strokeStyle = "#efffff"; context.lineWidth = 1; context.beginPath(); context.moveTo(0, middle); context.lineTo(width, middle); context.stroke();
+      } else if (visualizer === "rainbow") {
+        const rainbowCount = Math.min(30, Math.max(16, Math.floor(width / 17))); const rainbowGap = Math.max(3, width / rainbowCount * .25); const rainbowWidth = (width - rainbowGap * (rainbowCount - 1)) / rainbowCount; const baseline = height * .64;
+        for (let index = 0; index < rainbowCount; index += 1) { const amount = level(index, rainbowCount); const cells = Math.max(1, Math.ceil(amount * 14)); const hue = 42 + index / Math.max(rainbowCount - 1, 1) * 260; for (let cell = 0; cell < cells; cell += 1) { const y = baseline - (cell + 1) * 9; context.fillStyle = `hsl(${hue} 86% ${Math.max(43, 68 - cell * 1.2)}%)`; context.fillRect(index * (rainbowWidth + rainbowGap), y, rainbowWidth, 6); context.globalAlpha = .16 * (1 - cell / Math.max(cells, 1)); context.fillRect(index * (rainbowWidth + rainbowGap), baseline + cell * 9, rainbowWidth, 6); context.globalAlpha = 1; } }
       } else {
         for (let index = 0; index < barCount; index += 1) {
           const amount = level(index); const total = Math.max(8, amount * (height - 34)); const segments = Math.max(1, Math.ceil(total / 13));
