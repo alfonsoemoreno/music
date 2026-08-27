@@ -30,6 +30,7 @@ export const SpectrumAnalyzer = ({ track, album, artist }: { track: string; albu
   const [open, setOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isTheaterMode, setIsTheaterMode] = useState(false);
+  const [controlsVisible, setControlsVisible] = useState(true);
   const [theme, setTheme] = useState<ThemeName>("studio");
   const [visualizer, setVisualizer] = useState<VisualizerName>("led");
   const [marqueeColor, setMarqueeColor] = useState<MarqueeColor>("violet");
@@ -43,6 +44,7 @@ export const SpectrumAnalyzer = ({ track, album, artist }: { track: string; albu
   const stream = useRef<MediaStream | undefined>(undefined);
   const inputGain = useRef<GainNode | undefined>(undefined);
   const animation = useRef<number | undefined>(undefined);
+  const controlsTimer = useRef<number | undefined>(undefined);
 
   const stop = useCallback((): void => {
     if (animation.current) cancelAnimationFrame(animation.current);
@@ -91,6 +93,18 @@ export const SpectrumAnalyzer = ({ track, album, artist }: { track: string; albu
     document.addEventListener("fullscreenchange", updateFullscreen);
     return () => document.removeEventListener("fullscreenchange", updateFullscreen);
   }, []);
+  const expanded = isFullscreen || isTheaterMode;
+  const revealControls = useCallback((): void => {
+    if (!expanded) return;
+    setControlsVisible(true);
+    if (controlsTimer.current) window.clearTimeout(controlsTimer.current);
+    controlsTimer.current = window.setTimeout(() => setControlsVisible(false), 3_000);
+  }, [expanded]);
+  useEffect(() => {
+    if (!open || !expanded) { setControlsVisible(true); if (controlsTimer.current) window.clearTimeout(controlsTimer.current); return; }
+    revealControls();
+    return () => { if (controlsTimer.current) window.clearTimeout(controlsTimer.current); };
+  }, [open, expanded, revealControls]);
   useEffect(() => {
     if (!open) return;
     const element = canvas.current;
@@ -192,5 +206,5 @@ export const SpectrumAnalyzer = ({ track, album, artist }: { track: string; albu
       setIsTheaterMode(true);
     }
   };
-  return <div className="spectrum-container">{!open ? <button className="spectrum-trigger" type="button" aria-label="Abrir analizador de espectro" onClick={() => void start()}><WaveIcon /><span>Analizador</span></button> : <section ref={panel} className={`spectrum-panel ${theme}${isTheaterMode ? " spectrum-panel-theater" : ""}`} aria-label="Analizador de espectro"><header><div className="spectrum-actions">{visualizer === "nowPlaying" ? <div className="marquee-controls"><div className="marquee-picker" aria-label="Color del cartel LED">{(Object.keys(marqueeColors) as MarqueeColor[]).map((name) => <button className={name === marqueeColor ? "selected" : ""} key={name} onClick={() => setMarqueeColor(name)}>{marqueeColors[name].label}</button>)}</div><div className="marquee-picker marquee-speed" aria-label="Velocidad del cartel LED">{(Object.keys(marqueeSpeeds) as MarqueeSpeed[]).map((name) => <button className={name === marqueeSpeed ? "selected" : ""} key={name} onClick={() => setMarqueeSpeed(name)}>{marqueeSpeeds[name].label}</button>)}</div><div className="marquee-picker marquee-size" aria-label="Tamaño del cartel LED">{(Object.keys(marqueeSizes) as MarqueeSize[]).map((name) => <button className={name === marqueeSize ? "selected" : ""} key={name} onClick={() => setMarqueeSize(name)}>{marqueeSizes[name].label}</button>)}</div></div> : null}<button className="spectrum-fullscreen" type="button" aria-label="Mostrar el analizador a pantalla completa" title="Pantalla completa" onClick={() => void toggleFullscreen().catch(() => undefined)}><FullscreenIcon /></button><button className="spectrum-close" type="button" onClick={close}>Cerrar</button></div></header><div className="spectrum-stage"><canvas ref={canvas} /></div>{message ? <footer><span className="spectrum-led" />{message}</footer> : null}<div className="visualizer-picker" aria-label="Tipo de analizador">{(Object.keys(visualizers) as VisualizerName[]).map((name) => <button className={name === visualizer ? "selected" : ""} key={name} onClick={() => setVisualizer(name)}>{visualizers[name]}</button>)}</div></section>}</div>;
+  return <div className="spectrum-container">{!open ? <button className="spectrum-trigger" type="button" aria-label="Abrir analizador de espectro" onClick={() => void start()}><WaveIcon /><span>Analizador</span></button> : <section ref={panel} className={`spectrum-panel ${theme}${isTheaterMode ? " spectrum-panel-theater" : ""}${expanded && !controlsVisible ? " controls-hidden" : ""}`} aria-label="Analizador de espectro" onPointerDown={revealControls} onPointerMove={revealControls} onKeyDown={revealControls} onFocusCapture={revealControls}><header><div className="spectrum-actions">{visualizer === "nowPlaying" ? <div className="marquee-controls"><div className="marquee-picker" aria-label="Color del cartel LED">{(Object.keys(marqueeColors) as MarqueeColor[]).map((name) => <button className={name === marqueeColor ? "selected" : ""} key={name} onClick={() => setMarqueeColor(name)}>{marqueeColors[name].label}</button>)}</div><div className="marquee-picker marquee-speed" aria-label="Velocidad del cartel LED">{(Object.keys(marqueeSpeeds) as MarqueeSpeed[]).map((name) => <button className={name === marqueeSpeed ? "selected" : ""} key={name} onClick={() => setMarqueeSpeed(name)}>{marqueeSpeeds[name].label}</button>)}</div><div className="marquee-picker marquee-size" aria-label="Tamaño del cartel LED">{(Object.keys(marqueeSizes) as MarqueeSize[]).map((name) => <button className={name === marqueeSize ? "selected" : ""} key={name} onClick={() => setMarqueeSize(name)}>{marqueeSizes[name].label}</button>)}</div></div> : null}<button className="spectrum-fullscreen" type="button" aria-label="Mostrar el analizador a pantalla completa" title="Pantalla completa" onClick={() => void toggleFullscreen().catch(() => undefined)}><FullscreenIcon /></button><button className="spectrum-close" type="button" onClick={close}>Cerrar</button></div></header><div className="spectrum-stage"><canvas ref={canvas} /></div>{message ? <footer><span className="spectrum-led" />{message}</footer> : null}<div className="visualizer-picker" aria-label="Tipo de analizador">{(Object.keys(visualizers) as VisualizerName[]).map((name) => <button className={name === visualizer ? "selected" : ""} key={name} onClick={() => setVisualizer(name)}>{visualizers[name]}</button>)}</div></section>}</div>;
 };
