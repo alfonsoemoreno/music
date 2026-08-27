@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createEnrollmentCode, hashEnrollmentCode } from "@/lib/bridge-auth";
 import { database } from "@/db/client";
 import { bridgeEnrollmentCodes } from "@/db/schema";
-import { attachViewerSession, viewerSession } from "@/lib/viewer-session";
+import { attachViewerSession, createViewerRecoveryToken, viewerSession } from "@/lib/viewer-session";
 
 /** Creates a short-lived, single-use six-digit PIN shown by the Music web UI. */
 export const POST = async (request: Request): Promise<NextResponse> => {
@@ -14,7 +14,10 @@ export const POST = async (request: Request): Promise<NextResponse> => {
   for (let attempt = 0; attempt < 5; attempt += 1) {
     const code = createEnrollmentCode();
     const inserted = await database.insert(bridgeEnrollmentCodes).values({ codeHash: hashEnrollmentCode(code), viewerId: session.id, expiresAt }).onConflictDoNothing().returning({ id: bridgeEnrollmentCodes.id });
-    if (inserted[0]) return attachViewerSession(NextResponse.json({ code, expiresAt: expiresAt.toISOString(), serverUrl: new URL(request.url).origin }), session);
+    if (inserted[0]) {
+      const recoveryToken = await createViewerRecoveryToken(session.id);
+      return attachViewerSession(NextResponse.json({ code, expiresAt: expiresAt.toISOString(), serverUrl: new URL(request.url).origin, recoveryToken }), session);
+    }
   }
   return NextResponse.json({ error: "Could not create a pairing PIN. Please try again." }, { status: 503 });
 };

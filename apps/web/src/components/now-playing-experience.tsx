@@ -13,6 +13,9 @@ type View = "album" | "archive" | "artist";
 const views: Array<{ id: View; label: string }> = [{ id: "album", label: "El disco" }, { id: "archive", label: "Archivo" }, { id: "artist", label: "Artista" }];
 const duration = (milliseconds?: number): string => milliseconds ? `${Math.floor(milliseconds / 60_000)}:${String(Math.round(milliseconds / 1_000) % 60).padStart(2, "0")}` : "";
 const enrichmentLabel = (status: string): string => ({ completed: "listo", loading: "completando", failed: "pendiente", not_configured: "no configurado" })[status] ?? status;
+const playbackCacheKey = "music.last-playback.v1";
+const recoveryTokenKey = "music.viewer.recovery";
+type StoredPlayback = { playback: AgentPlaybackPayload; album: AlbumCompanionData };
 
 export const NowPlayingExperience = (): React.JSX.Element => {
   const [playback, setPlayback] = useState<AgentPlaybackPayload>();
@@ -21,6 +24,7 @@ export const NowPlayingExperience = (): React.JSX.Element => {
   const [view, setView] = useState<View>("album");
   const [isResolving, setIsResolving] = useState(false);
   const [retrying, setRetrying] = useState(false);
+  const [cacheReady, setCacheReady] = useState(false);
   const latestRequest = useRef(0);
   const lastPlaybackKey = useRef<string | undefined>(undefined);
   const playbackEtag = useRef<string | undefined>(undefined);
@@ -30,22 +34,40 @@ export const NowPlayingExperience = (): React.JSX.Element => {
   useEffect(() => {
     let cancelled = false;
     let timer: number | undefined;
+    try {
+      const stored = window.localStorage.getItem(playbackCacheKey);
+      if (stored) {
+        const cached = JSON.parse(stored) as StoredPlayback;
+        if (cached.playback?.track?.title && cached.album?.title) { hasPlayback.current = true; setPlayback(cached.playback); setAlbum(cached.album); setIsResolving(false); }
+      }
+    } catch {
+      // Safari can disable storage for an installed PWA. The live session
+      // must remain usable even when removing a corrupt cache also fails.
+      try { window.localStorage.removeItem(playbackCacheKey); } catch { /* no persistent cache available */ }
+    }
+    setCacheReady(true);
     const load = async (): Promise<void> => {
       const requestId = latestRequest.current + 1;
       latestRequest.current = requestId;
       try {
-        const response = await fetch("/api/playback/now", { cache: "no-store", headers: playbackEtag.current ? { "if-none-match": playbackEtag.current } : undefined });
+        const storedRecoveryToken = window.localStorage.getItem(recoveryTokenKey);
+        const headers = new Headers(playbackEtag.current ? { "if-none-match": playbackEtag.current } : undefined);
+        if (storedRecoveryToken) headers.set("x-music-viewer-recovery", storedRecoveryToken);
+        const response = await fetch("/api/playback/now", { cache: "no-store", credentials: "same-origin", headers });
         if (response.status === 304) { if (hasPlayback.current) setLive(true); return; }
         if (!response.ok) throw new Error("No fue posible actualizar la reproducción.");
+        const issuedRecoveryToken = response.headers.get("x-music-viewer-recovery");
+        if (issuedRecoveryToken) window.localStorage.setItem(recoveryTokenKey, issuedRecoveryToken);
         const data = await response.json() as { playback: AgentPlaybackPayload | null; album: AlbumCompanionData | null };
         if (requestId !== latestRequest.current) return;
         playbackEtag.current = response.headers.get("etag") ?? undefined;
-        if (!data.playback) { hasPlayback.current = false; setPlayback(undefined); setAlbum(undefined); setLive(false); setIsResolving(false); return; }
+        if (!data.playback) { setLive(false); setIsResolving(false); if (!hasPlayback.current) { setPlayback(undefined); setAlbum(undefined); } return; }
         const playbackKey = [data.playback.playbackProvider, data.playback.artist.name, data.playback.album?.title, data.playback.track.title].join("|");
         if (lastPlaybackKey.current && lastPlaybackKey.current !== playbackKey) { fastPollingUntil.current = Date.now() + 8_000; setView("album"); }
         lastPlaybackKey.current = playbackKey;
-        hasPlayback.current = true; setPlayback(data.playback); setLive(true); setIsResolving(!data.album);
-        setAlbum(data.album ?? { id: data.playback.album?.externalId ?? "unresolved", artistId: "unresolved", title: data.playback.album?.title ?? "Single", artist: data.playback.artist.name, artworkUrl: data.playback.album?.artworkUrl, genres: [], tags: [], enrichment: [], tracks: [], editions: [], credits: [], artwork: [] });
+        const resolvedAlbum = data.album ?? { id: data.playback.album?.externalId ?? "unresolved", artistId: "unresolved", title: data.playback.album?.title ?? "Single", artist: data.playback.artist.name, artworkUrl: data.playback.album?.artworkUrl, genres: [], tags: [], enrichment: [], tracks: [], editions: [], credits: [], artwork: [] };
+        hasPlayback.current = true; setPlayback(data.playback); setLive(true); setIsResolving(!data.album); setAlbum(resolvedAlbum);
+        try { window.localStorage.setItem(playbackCacheKey, JSON.stringify({ playback: data.playback, album: resolvedAlbum } satisfies StoredPlayback)); } catch { /* Keeping the live playback is still safe when local storage is unavailable. */ }
       } catch { if (requestId === latestRequest.current) setLive(false); }
       finally { if (!cancelled) timer = window.setTimeout(() => void load(), document.hidden ? 60_000 : Date.now() < fastPollingUntil.current ? 1_000 : 8_000); }
     };
@@ -55,6 +77,7 @@ export const NowPlayingExperience = (): React.JSX.Element => {
     return () => { cancelled = true; if (timer) window.clearTimeout(timer); document.removeEventListener("visibilitychange", onVisibilityChange); };
   }, []);
 
+  if (!cacheReady) return <main className="pairing-shell"><header className="masthead"><span>Music <i>— Digital Album Companion</i></span><span className="signal">● Recuperando sesión</span></header><footer>Buscando la última reproducción…</footer></main>;
   if (!playback || !album) return <main className="pairing-shell"><header className="masthead"><span>Music <i>— Digital Album Companion</i></span><span className="signal">● Configuración inicial</span></header><WiiMBrowserBridge /><footer>La música sigue en tu reproductor. Aquí vuelve a aparecer el álbum.</footer></main>;
 
   // WiiM's provider artwork is the closest representation of the stream the
@@ -78,5 +101,5 @@ export const NowPlayingExperience = (): React.JSX.Element => {
   const artistView = <section className="detail-section artist-panel"><p className="section-label">Artista</p><h3>{album.artist}</h3>{album.artistCountry ? <p className="artist-origin">{album.artistCountry}</p> : null}{album.artistBiography ? <><p>{album.artistBiography}</p>{album.artistWikipediaUrl ? <a href={album.artistWikipediaUrl} target="_blank" rel="noreferrer">Ver fuente y contexto en Wikipedia</a> : null}<WikipediaReader kind="artist" entityId={album.artistId} /></> : isResolving ? editorialLoading : <p className="empty-state">La biografía se está completando.</p>}</section>;
   const content = ({ album: albumView, archive: archiveView, artist: artistView })[view];
 
-  return <main className="album-shell"><header className="masthead"><span>Music <i>— Digital Album Companion</i></span><span className={live ? "signal online" : "signal"}>● {live ? "Escuchando ahora" : "Esperando reproducción"}</span></header><div className="album-grid"><aside className="record-object"><div className="cover-frame">{cover ? <img className="album-cover" src={cover} alt={`Portada de ${album.title}`} /> : <div className="cover-placeholder">MUSIC</div>}</div><SpectrumAnalyzer track={playback.track.title} album={album.title} artist={album.artist} /><div className="record-spine"><span>{album.artist}</span><span>{album.title}</span></div><div className="record-facts"><span>{[album.year, album.label, album.format].filter(Boolean).join(" · ") || (isResolving ? "Identificando edición" : "Álbum digital")}</span>{album.genres.length ? <span>{album.genres.join(" · ")}</span> : null}</div></aside><article className="album-copy"><header className="album-header"><p className="kicker">En reproducción</p><h1>{album.title}</h1><h2>{album.artist}</h2>{album.tags.length ? <p className="tags">{album.tags.join(" · ")}</p> : null}</header><section className="now-playing-card"><div className="now-playing-heading"><span>Ahora suena</span><span>{playback.playback.state === "playing" ? "● En curso" : playback.playback.state}</span></div><div className="track"><strong>{playback.track.title}</strong><span>{duration(playback.track.durationMs)}</span></div><div className="progress"><i style={{ width: `${progress}%` }} /></div><p className="technical">{playback.source ?? playback.playbackProvider} <b>•</b> WiiM Ultra</p></section><div className="metadata-retry"><span>{retrying ? "Actualizando la ficha…" : "¿Falta información?"}</span><button type="button" disabled={retrying} onClick={() => void retryMetadata()}>{retrying ? "Reintentando" : "Reintentar ahora"}</button></div>{isResolving ? <p className="preparing">Preparando la ficha del álbum…</p> : album.enrichment.length ? <div className="enrichment-status" aria-label="Estado de fuentes">{album.enrichment.map((item) => <span className={item.status} key={item.source} title={item.error}>{item.source} · {enrichmentLabel(item.status)}</span>)}</div> : null}<nav className="album-nav" aria-label="Contenido del álbum">{views.map((item) => <button className={view === item.id ? "selected" : ""} key={item.id} onClick={() => setView(item.id)}>{item.label}</button>)}</nav><section className="album-content">{content}</section></article></div><footer>La música sigue en tu reproductor. Aquí tienes el álbum.</footer></main>;
+  return <main className="album-shell"><header className="masthead"><span>Music <i>— Digital Album Companion</i></span><span className={live ? "signal online" : "signal"}>● {live ? "Escuchando ahora" : "Sin señal · último álbum"}</span></header><div className="album-grid"><aside className="record-object"><div className="cover-frame">{cover ? <img className="album-cover" src={cover} alt={`Portada de ${album.title}`} /> : <div className="cover-placeholder">MUSIC</div>}</div><SpectrumAnalyzer track={playback.track.title} album={album.title} artist={album.artist} /><div className="record-spine"><span>{album.artist}</span><span>{album.title}</span></div><div className="record-facts"><span>{[album.year, album.label, album.format].filter(Boolean).join(" · ") || (isResolving ? "Identificando edición" : "Álbum digital")}</span>{album.genres.length ? <span>{album.genres.join(" · ")}</span> : null}</div></aside><article className="album-copy"><header className="album-header"><p className="kicker">En reproducción</p><h1>{album.title}</h1><h2>{album.artist}</h2>{album.tags.length ? <p className="tags">{album.tags.join(" · ")}</p> : null}</header><section className="now-playing-card"><div className="now-playing-heading"><span>Ahora suena</span><span>{playback.playback.state === "playing" ? "● En curso" : playback.playback.state}</span></div><div className="track"><strong>{playback.track.title}</strong><span>{duration(playback.track.durationMs)}</span></div><div className="progress"><i style={{ width: `${progress}%` }} /></div><p className="technical">{playback.source ?? playback.playbackProvider} <b>•</b> WiiM Ultra</p></section><div className="metadata-retry"><span>{retrying ? "Actualizando la ficha…" : "¿Falta información?"}</span><button type="button" disabled={retrying} onClick={() => void retryMetadata()}>{retrying ? "Reintentando" : "Reintentar ahora"}</button></div>{isResolving ? <p className="preparing">Preparando la ficha del álbum…</p> : album.enrichment.length ? <div className="enrichment-status" aria-label="Estado de fuentes">{album.enrichment.map((item) => <span className={item.status} key={item.source} title={item.error}>{item.source} · {enrichmentLabel(item.status)}</span>)}</div> : null}<nav className="album-nav" aria-label="Contenido del álbum">{views.map((item) => <button className={view === item.id ? "selected" : ""} key={item.id} onClick={() => setView(item.id)}>{item.label}</button>)}</nav><section className="album-content">{content}</section></article></div><footer>La música sigue en tu reproductor. Aquí tienes el álbum.</footer></main>;
 };

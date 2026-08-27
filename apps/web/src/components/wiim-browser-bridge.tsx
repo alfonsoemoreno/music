@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 
-interface Enrollment { code: string; expiresAt: string }
+interface Enrollment { code: string; expiresAt: string; recoveryToken?: string }
+const recoveryTokenKey = "music.viewer.recovery";
 
 /** The first screen: pairing is deliberately the only action before Music has a live album. */
 export const WiiMBrowserBridge = (): React.JSX.Element => {
@@ -14,7 +15,9 @@ export const WiiMBrowserBridge = (): React.JSX.Element => {
     try {
       const response = await fetch("/api/bridges/enrollments", { method: "POST" });
       if (!response.ok) throw new Error("No fue posible generar el PIN.");
-      setEnrollment(await response.json() as Enrollment);
+      const enrollment = await response.json() as Enrollment;
+      if (enrollment.recoveryToken) window.localStorage.setItem(recoveryTokenKey, enrollment.recoveryToken);
+      setEnrollment(enrollment);
       setMessage("");
     } catch { setMessage("No pudimos generar el PIN. Comprueba la conexión e inténtalo nuevamente."); }
   };
