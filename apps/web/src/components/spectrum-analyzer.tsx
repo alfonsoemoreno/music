@@ -3,13 +3,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 type ThemeName = "studio" | "neon" | "vintage";
-type VisualizerName = "led" | "scope" | "mirror" | "radial" | "matrix" | "cascade" | "vu";
+type VisualizerName = "led" | "scope" | "mirror" | "matrix" | "cascade";
 const themes: Record<ThemeName, { label: string; background: string; grid: string; bars: string[]; glow: string }> = {
   studio: { label: "Estudio", background: "#071008", grid: "#153e1b", bars: ["#12ef38", "#b6ef16", "#ffcb13", "#ff3131"], glow: "#10ff38" },
   neon: { label: "Neón", background: "#080510", grid: "#2b1745", bars: ["#00d8ff", "#7c4dff", "#f02bda", "#ffb000"], glow: "#e838ff" },
   vintage: { label: "Radio", background: "#1b120d", grid: "#59321e", bars: ["#f3aa3c", "#ed6c41", "#d94f78", "#b74f8e"], glow: "#ff9c43" },
 };
-const visualizers: Record<VisualizerName, string> = { led: "Barras", scope: "Oscilo", mirror: "Espejo", radial: "Radial", matrix: "Matriz", cascade: "Cascada", vu: "VU" };
+const visualizers: Record<VisualizerName, string> = { led: "Barras", scope: "Oscilo", mirror: "Espejo", matrix: "Matriz", cascade: "Cascada" };
 
 const WaveIcon = (): React.JSX.Element => <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h2l2.1-6 3.2 12L13 3l2.1 15L17 9l1.3 3H21" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.7" /></svg>;
 const FullscreenIcon = (): React.JSX.Element => <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.7" /></svg>;
@@ -91,12 +91,6 @@ export const SpectrumAnalyzer = (): React.JSX.Element => {
       if (visualizer === "scope") {
         context.beginPath(); context.lineWidth = 3; context.strokeStyle = activeTheme.bars[0];
         waveform.forEach((sample, index) => { const x = index / (waveform.length - 1) * width; const y = (sample / 255) * height; index ? context.lineTo(x, y) : context.moveTo(x, y); }); context.stroke();
-      } else if (visualizer === "radial") {
-        const centerX = width / 2; const centerY = height / 2; const radius = Math.min(width, height) * .17;
-        for (let index = 0; index < barCount; index += 1) { const amount = level(index); const angle = index / barCount * Math.PI * 2 - Math.PI / 2; const length = 9 + amount * Math.min(width, height) * .29; context.strokeStyle = color(amount); context.lineWidth = Math.max(2, barWidth * .55); context.beginPath(); context.moveTo(centerX + Math.cos(angle) * radius, centerY + Math.sin(angle) * radius); context.lineTo(centerX + Math.cos(angle) * (radius + length), centerY + Math.sin(angle) * (radius + length)); context.stroke(); }
-      } else if (visualizer === "vu") {
-        const left = bins.slice(0, 110).reduce((total, value) => total + value, 0) / (110 * 255); const right = bins.slice(110, 400).reduce((total, value) => total + value, 0) / (290 * 255);
-        [left, right].forEach((amount, index) => { const x = width * (.23 + index * .42); const meterHeight = height * .7; const segments = 22; for (let segment = 0; segment < segments; segment += 1) { const y = height * .85 - (segment + 1) * meterHeight / segments; context.fillStyle = segment / segments < amount ? color(segment / segments) : activeTheme.grid; context.fillRect(x, y, width * .15, meterHeight / segments - 4); } });
       } else {
         for (let index = 0; index < barCount; index += 1) {
           const amount = level(index); const total = Math.max(8, amount * (height - 34)); const segments = Math.max(1, Math.ceil(total / 13));
