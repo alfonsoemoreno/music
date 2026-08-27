@@ -21,6 +21,7 @@ export const SpectrumAnalyzer = ({ track, album, artist }: { track: string; albu
   const [message, setMessage] = useState("El analizador escucha el ambiente de esta habitación.");
   const canvas = useRef<HTMLCanvasElement>(null);
   const panel = useRef<HTMLElement>(null);
+  const marqueeSource = useRef<{ text: string; canvas: HTMLCanvasElement } | undefined>(undefined);
   const analyser = useRef<AnalyserNode | undefined>(undefined);
   const audioContext = useRef<AudioContext | undefined>(undefined);
   const stream = useRef<MediaStream | undefined>(undefined);
@@ -90,10 +91,10 @@ export const SpectrumAnalyzer = ({ track, album, artist }: { track: string; albu
         context.beginPath(); context.lineWidth = 3; context.strokeStyle = activeTheme.bars[0];
         waveform.forEach((sample, index) => { const x = index / (waveform.length - 1) * width; const y = (sample / 255) * height; index ? context.lineTo(x, y) : context.moveTo(x, y); }); context.stroke();
       } else if (visualizer === "nowPlaying") {
-        const text = `NOW PLAYING — ${track} · ${album} · ${artist}`.toUpperCase(); const fontSize = Math.max(18, Math.min(64, height * .45));
-        context.font = `600 ${fontSize}px monospace`; context.textBaseline = "middle"; context.fillStyle = "#f8f4e8"; context.shadowBlur = 12; context.shadowColor = activeTheme.glow;
-        const textWidth = context.measureText(text).width; const gap = fontSize * 1.5; const offset = performance.now() / 32 % (textWidth + gap); const x = width - offset;
-        context.fillText(text, x, height / 2); context.fillText(text, x + textWidth + gap, height / 2);
+        const text = `NOW PLAYING — ${track} · ${album} · ${artist}`.toUpperCase(); const pixelFontSize = 18;
+        if (marqueeSource.current?.text !== text) { const source = document.createElement("canvas"); const sourceContext = source.getContext("2d"); if (sourceContext) { sourceContext.font = `700 ${pixelFontSize}px monospace`; source.width = Math.ceil(sourceContext.measureText(text).width) + 4; source.height = 24; sourceContext.font = `700 ${pixelFontSize}px monospace`; sourceContext.fillStyle = "#fffdf5"; sourceContext.textBaseline = "middle"; sourceContext.fillText(text, 1, source.height / 2); marqueeSource.current = { text, canvas: source }; } }
+        const source = marqueeSource.current?.canvas;
+        if (source) { const scale = Math.max(2, Math.min(38, height * .74 / source.height)); const renderedWidth = source.width * scale; const renderedHeight = source.height * scale; const gap = height * .55; const offset = performance.now() / 55 % (renderedWidth + gap); const x = width - offset; context.imageSmoothingEnabled = false; context.shadowBlur = 3; context.shadowColor = "#ffffff"; context.drawImage(source, x, (height - renderedHeight) / 2, renderedWidth, renderedHeight); context.drawImage(source, x + renderedWidth + gap, (height - renderedHeight) / 2, renderedWidth, renderedHeight); context.imageSmoothingEnabled = true; }
       } else if (visualizer === "skyline") {
         const baseline = height * .58; const skylineCount = Math.min(42, Math.max(22, Math.floor(width / 12))); const skylineGap = Math.max(2, width / skylineCount * .2); const skylineWidth = (width - skylineGap * (skylineCount - 1)) / skylineCount;
         context.shadowBlur = 12;
