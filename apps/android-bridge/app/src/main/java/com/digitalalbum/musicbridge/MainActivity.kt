@@ -10,6 +10,8 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.view.WindowInsets
+import android.view.WindowManager
 import android.text.InputType
 import android.view.Gravity
 import android.view.View
@@ -71,6 +73,7 @@ class MainActivity : Activity() {
         layout.addView(status)
         layout.addView(privacy)
         setContentView(ScrollView(this).apply { addView(layout, ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)) })
+        enableImmersiveLayout()
 
         BridgePreferences(this).configuration()?.let {
             enrollmentCode.visibility = View.GONE
@@ -103,6 +106,21 @@ class MainActivity : Activity() {
 
     private fun rounded(color: Int, radius: Int, stroke: Int? = null): GradientDrawable = GradientDrawable().apply { setColor(color); cornerRadius = radius.toFloat(); stroke?.let { setStroke(dp(1), it) } }
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
+
+    /** Uses the whole display while preserving Android's swipe-to-reveal system controls. */
+    private fun enableImmersiveLayout() {
+        window.addFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            window.setDecorFitsSystemWindows(false)
+            window.insetsController?.apply {
+                hide(WindowInsets.Type.statusBars() or WindowInsets.Type.navigationBars())
+                systemBarsBehavior = android.view.WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            }
+        } else {
+            @Suppress("DEPRECATION")
+            window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or View.SYSTEM_UI_FLAG_FULLSCREEN or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+        }
+    }
 
     private fun begin() {
         if (!hasLocalNetworkAccess()) {
@@ -173,6 +191,7 @@ class MainActivity : Activity() {
 
     override fun onResume() {
         super.onResume()
+        enableImmersiveLayout()
         statusHandler.post(refreshStatus)
     }
 

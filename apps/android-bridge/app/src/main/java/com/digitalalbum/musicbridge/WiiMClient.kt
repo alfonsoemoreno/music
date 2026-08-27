@@ -38,10 +38,17 @@ class WiiMClient(private val host: String) {
         // response as a fallback when getPlayerStatus is absent or formatted differently.
         val playerResponse = runCatching { command("getPlayerStatus") }.getOrNull()
         val player = playerResponse?.optJSONObject("player") ?: playerResponse ?: status.optJSONObject("player") ?: status
-        val artist = decode(player.optString("Artist").ifBlank { player.optString("artist") }) ?: "Unknown artist"
-        val title = decode(player.optString("Title").ifBlank { player.optString("title") }) ?: "Unknown track"
-        val albumTitle = decode(player.optString("Album").ifBlank { player.optString("album") })
+        // getMetaInfo is the documented local source that includes provider artwork
+        // (for example Qobuz's albumArtURI). It is optional on older firmware and
+        // local sources, so the player status remains the reliable fallback.
+        val metadataResponse = runCatching { command("getMetaInfo") }.getOrNull()
+        val metadata = metadataResponse?.optJSONObject("metaData") ?: metadataResponse
+        val fromMetadata = { key: String -> decode(metadata?.optString(key)) }
+        val artist = fromMetadata("artist") ?: decode(player.optString("Artist").ifBlank { player.optString("artist") }) ?: "Unknown artist"
+        val title = fromMetadata("title") ?: decode(player.optString("Title").ifBlank { player.optString("title") }) ?: "Unknown track"
+        val albumTitle = fromMetadata("album") ?: decode(player.optString("Album").ifBlank { player.optString("album") })
         val vendor = decode(player.optString("vendor")) ?: "WiiM"
+        val artworkUrl = metadata?.optString("albumArtURI")?.takeIf { it.startsWith("https://") }
         val state = when (player.optString("status")) { "play", "playing" -> "playing"; "pause", "paused" -> "paused"; else -> "stopped" }
         val payload = JSONObject()
             .put("agentVersion", "android-bridge-0.1.0")
@@ -51,7 +58,11 @@ class WiiMClient(private val host: String) {
             .put("artist", JSONObject().put("name", artist))
             .put("track", JSONObject().put("title", title).put("durationMs", player.optLong("totlen", 0)))
             .put("playback", JSONObject().put("state", state))
-        if (!albumTitle.isNullOrBlank()) payload.put("album", JSONObject().put("title", albumTitle))
+        if (!albumTitle.isNullOrBlank()) {
+            val album = JSONObject().put("title", albumTitle)
+            artworkUrl?.let { album.put("artworkUrl", it) }
+            payload.put("album", album)
+        }
         return Playback(listOf(vendor, artist, albumTitle.orEmpty(), title, state).joinToString("|").lowercase(), payload)
     }
 }

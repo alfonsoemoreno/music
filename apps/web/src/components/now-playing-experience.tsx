@@ -48,7 +48,9 @@ export const NowPlayingExperience = (): React.JSX.Element => {
 
   if (!playback || !album) return <main className="pairing-shell"><header className="masthead"><span>Music <i>— Digital Album Companion</i></span><span className="signal">● Configuración inicial</span></header><WiiMBrowserBridge /><footer>La música sigue en tu reproductor. Aquí vuelve a aparecer el álbum.</footer></main>;
 
-  const cover = album.artworkUrl ?? playback.album?.artworkUrl;
+  // WiiM's provider artwork is the closest representation of the stream the
+  // listener selected; use cached MusicBrainz/Discogs artwork only as fallback.
+  const cover = playback.album?.artworkUrl ?? album.artworkUrl;
   const progress = Math.min(100, Math.round((playback.track.positionMs ?? 0) / (playback.track.durationMs ?? 1) * 100));
   const fanartArtwork = album.artwork.filter((item) => item.source === "fanart");
   const loadingRows = <div className="track-skeleton" aria-label="Preparando tracklist">{Array.from({ length: 6 }, (_, index) => <i key={index} />)}</div>;

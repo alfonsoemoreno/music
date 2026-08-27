@@ -38,6 +38,12 @@ export const setCurrentPlaybackIfEventIsCurrent = async (payload: AgentPlaybackP
   await database.update(currentPlayback).set({ payload: merged, updatedAt: new Date() }).where(and(eq(currentPlayback.deviceId, payload.deviceId), eq(currentPlayback.eventId, current.eventId)));
 };
 
+export const getCurrentPlaybackForDevice = async (deviceId: string): Promise<AgentPlaybackPayload | undefined> => {
+  if (!database) return globalThis.musicDevelopmentPlayback;
+  const rows = await database.select({ payload: currentPlayback.payload }).from(currentPlayback).where(eq(currentPlayback.deviceId, deviceId)).limit(1);
+  return rows[0]?.payload as AgentPlaybackPayload | undefined;
+};
+
 export const getCurrentPlayback = async (viewerId?: string): Promise<AgentPlaybackPayload | undefined> => {
   if (!database) return globalThis.musicDevelopmentPlayback;
   if (!viewerId) return undefined;
