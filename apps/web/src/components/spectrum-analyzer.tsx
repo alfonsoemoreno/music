@@ -4,12 +4,20 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 type ThemeName = "studio" | "neon" | "vintage";
 type VisualizerName = "led" | "scope" | "mirror" | "matrix" | "cascade" | "skyline" | "pulse" | "glow" | "wave" | "rainbow" | "nowPlaying" | "prism" | "mountain" | "steps" | "symmetric";
+type MarqueeColor = "violet" | "amber" | "ice" | "lime";
 const themes: Record<ThemeName, { label: string; background: string; grid: string; bars: string[]; glow: string }> = {
   studio: { label: "Estudio", background: "#071008", grid: "#153e1b", bars: ["#12ef38", "#b6ef16", "#ffcb13", "#ff3131"], glow: "#10ff38" },
   neon: { label: "Neón", background: "#080510", grid: "#2b1745", bars: ["#00d8ff", "#7c4dff", "#f02bda", "#ffb000"], glow: "#e838ff" },
   vintage: { label: "Radio", background: "#1b120d", grid: "#59321e", bars: ["#f3aa3c", "#ed6c41", "#d94f78", "#b74f8e"], glow: "#ff9c43" },
 };
 const visualizers: Record<VisualizerName, string> = { led: "Barras", scope: "Oscilo", mirror: "Espejo", matrix: "Matriz", cascade: "Cascada", skyline: "Skyline", pulse: "Pulso", glow: "Neón", wave: "Onda", rainbow: "Arcoíris", nowPlaying: "Now playing", prism: "Prisma LED", mountain: "Montaña LED", steps: "Pasos LED", symmetric: "Simetría LED" };
+const marqueeColors: Record<MarqueeColor, { label: string; value: string }> = { violet: { label: "Lila", value: "#b768ff" }, amber: { label: "Ámbar", value: "#ffc14d" }, ice: { label: "Hielo", value: "#fffdf5" }, lime: { label: "Lima", value: "#c8ff59" } };
+const ledGlyphs: Record<string, string[]> = {
+  A: ["01110", "10001", "10001", "11111", "10001", "10001", "10001"], B: ["11110", "10001", "10001", "11110", "10001", "10001", "11110"], C: ["01111", "10000", "10000", "10000", "10000", "10000", "01111"], D: ["11110", "10001", "10001", "10001", "10001", "10001", "11110"], E: ["11111", "10000", "10000", "11110", "10000", "10000", "11111"], F: ["11111", "10000", "10000", "11110", "10000", "10000", "10000"], G: ["01111", "10000", "10000", "10111", "10001", "10001", "01111"], H: ["10001", "10001", "10001", "11111", "10001", "10001", "10001"], I: ["11111", "00100", "00100", "00100", "00100", "00100", "11111"], J: ["00111", "00010", "00010", "00010", "10010", "10010", "01100"], K: ["10001", "10010", "10100", "11000", "10100", "10010", "10001"], L: ["10000", "10000", "10000", "10000", "10000", "10000", "11111"], M: ["10001", "11011", "10101", "10101", "10001", "10001", "10001"], N: ["10001", "11001", "10101", "10011", "10001", "10001", "10001"], O: ["01110", "10001", "10001", "10001", "10001", "10001", "01110"], P: ["11110", "10001", "10001", "11110", "10000", "10000", "10000"], Q: ["01110", "10001", "10001", "10001", "10101", "10010", "01101"], R: ["11110", "10001", "10001", "11110", "10100", "10010", "10001"], S: ["01111", "10000", "10000", "01110", "00001", "00001", "11110"], T: ["11111", "00100", "00100", "00100", "00100", "00100", "00100"], U: ["10001", "10001", "10001", "10001", "10001", "10001", "01110"], V: ["10001", "10001", "10001", "10001", "10001", "01010", "00100"], W: ["10001", "10001", "10001", "10101", "10101", "10101", "01010"], X: ["10001", "10001", "01010", "00100", "01010", "10001", "10001"], Y: ["10001", "10001", "01010", "00100", "00100", "00100", "00100"], Z: ["11111", "00001", "00010", "00100", "01000", "10000", "11111"],
+  "0": ["01110", "10001", "10011", "10101", "11001", "10001", "01110"], "1": ["00100", "01100", "00100", "00100", "00100", "00100", "01110"], "2": ["01110", "10001", "00001", "00010", "00100", "01000", "11111"], "3": ["11110", "00001", "00001", "01110", "00001", "00001", "11110"], "4": ["00010", "00110", "01010", "10010", "11111", "00010", "00010"], "5": ["11111", "10000", "10000", "11110", "00001", "00001", "11110"], "6": ["01110", "10000", "10000", "11110", "10001", "10001", "01110"], "7": ["11111", "00001", "00010", "00100", "01000", "01000", "01000"], "8": ["01110", "10001", "10001", "01110", "10001", "10001", "01110"], "9": ["01110", "10001", "10001", "01111", "00001", "00001", "01110"],
+  "-": ["00000", "00000", "00000", "11111", "00000", "00000", "00000"], "?": ["01110", "10001", "00001", "00010", "00100", "00000", "00100"], " ": ["000", "000", "000", "000", "000", "000", "000"]
+};
+const ledText = (value: string): string => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[—·]/g, "-").toUpperCase();
 
 const WaveIcon = (): React.JSX.Element => <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h2l2.1-6 3.2 12L13 3l2.1 15L17 9l1.3 3H21" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.7" /></svg>;
 const FullscreenIcon = (): React.JSX.Element => <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.7" /></svg>;
@@ -18,10 +26,10 @@ export const SpectrumAnalyzer = ({ track, album, artist }: { track: string; albu
   const [open, setOpen] = useState(false);
   const [theme, setTheme] = useState<ThemeName>("studio");
   const [visualizer, setVisualizer] = useState<VisualizerName>("led");
+  const [marqueeColor, setMarqueeColor] = useState<MarqueeColor>("violet");
   const [message, setMessage] = useState("El analizador escucha el ambiente de esta habitación.");
   const canvas = useRef<HTMLCanvasElement>(null);
   const panel = useRef<HTMLElement>(null);
-  const marqueeSource = useRef<{ text: string; canvas: HTMLCanvasElement } | undefined>(undefined);
   const analyser = useRef<AnalyserNode | undefined>(undefined);
   const audioContext = useRef<AudioContext | undefined>(undefined);
   const stream = useRef<MediaStream | undefined>(undefined);
@@ -91,10 +99,10 @@ export const SpectrumAnalyzer = ({ track, album, artist }: { track: string; albu
         context.beginPath(); context.lineWidth = 3; context.strokeStyle = activeTheme.bars[0];
         waveform.forEach((sample, index) => { const x = index / (waveform.length - 1) * width; const y = (sample / 255) * height; index ? context.lineTo(x, y) : context.moveTo(x, y); }); context.stroke();
       } else if (visualizer === "nowPlaying") {
-        const text = `NOW PLAYING — ${track} · ${album} · ${artist}`.toUpperCase(); const pixelFontSize = 18;
-        if (marqueeSource.current?.text !== text) { const source = document.createElement("canvas"); const sourceContext = source.getContext("2d"); if (sourceContext) { sourceContext.font = `700 ${pixelFontSize}px monospace`; source.width = Math.ceil(sourceContext.measureText(text).width) + 4; source.height = 24; sourceContext.font = `700 ${pixelFontSize}px monospace`; sourceContext.fillStyle = "#fffdf5"; sourceContext.textBaseline = "middle"; sourceContext.fillText(text, 1, source.height / 2); marqueeSource.current = { text, canvas: source }; } }
-        const source = marqueeSource.current?.canvas;
-        if (source) { const scale = Math.max(2, Math.min(38, height * .74 / source.height)); const renderedWidth = source.width * scale; const renderedHeight = source.height * scale; const gap = height * .55; const offset = performance.now() / 55 % (renderedWidth + gap); const x = width - offset; context.imageSmoothingEnabled = false; context.shadowBlur = 3; context.shadowColor = "#ffffff"; context.drawImage(source, x, (height - renderedHeight) / 2, renderedWidth, renderedHeight); context.drawImage(source, x + renderedWidth + gap, (height - renderedHeight) / 2, renderedWidth, renderedHeight); context.imageSmoothingEnabled = true; }
+        const text = ledText(`NOW PLAYING — ${track} · ${album} · ${artist}`); const cell = Math.max(5, Math.min(72, height * .74 / 7)); const cellGap = Math.max(1, cell * .16); const messageWidth = Array.from(text).reduce((total, character) => total + ((ledGlyphs[character] ?? ledGlyphs["?"])[0].length + 1) * cell, 0); const gap = height * .42; const offset = performance.now() / 70 % (messageWidth + gap); const start = width - offset; const top = (height - cell * 7) / 2;
+        context.fillStyle = marqueeColors[marqueeColor].value; context.shadowBlur = cell * .16; context.shadowColor = marqueeColors[marqueeColor].value;
+        const drawMessage = (left: number): void => { let x = left; for (const character of text) { const glyph = ledGlyphs[character] ?? ledGlyphs["?"]; glyph.forEach((row, rowIndex) => Array.from(row).forEach((bit, columnIndex) => { if (bit === "1") context.fillRect(x + columnIndex * cell, top + rowIndex * cell, cell - cellGap, cell - cellGap); })); x += (glyph[0].length + 1) * cell; } };
+        drawMessage(start); drawMessage(start + messageWidth + gap);
       } else if (visualizer === "skyline") {
         const baseline = height * .58; const skylineCount = Math.min(42, Math.max(22, Math.floor(width / 12))); const skylineGap = Math.max(2, width / skylineCount * .2); const skylineWidth = (width - skylineGap * (skylineCount - 1)) / skylineCount;
         context.shadowBlur = 12;
@@ -146,11 +154,11 @@ export const SpectrumAnalyzer = ({ track, album, artist }: { track: string; albu
     };
     draw();
     return () => { observer.disconnect(); if (animation.current) cancelAnimationFrame(animation.current); };
-  }, [open, theme, visualizer]);
+  }, [open, theme, visualizer, marqueeColor]);
 
   const toggleFullscreen = async (): Promise<void> => {
     if (document.fullscreenElement === panel.current) await document.exitFullscreen();
     else await panel.current?.requestFullscreen();
   };
-  return <div className="spectrum-container">{!open ? <button className="spectrum-trigger" type="button" aria-label="Abrir analizador de espectro" onClick={() => void start()}><WaveIcon /><span>Analizador</span></button> : <section ref={panel} className={`spectrum-panel ${theme}`} aria-label="Analizador de espectro"><header><div className="spectrum-actions"><div className="theme-picker" aria-label="Color del analizador">{(Object.keys(themes) as ThemeName[]).map((name) => <button className={name === theme ? "selected" : ""} key={name} onClick={() => setTheme(name)}>{themes[name].label}</button>)}</div><button className="spectrum-fullscreen" type="button" aria-label="Mostrar el analizador a pantalla completa" title="Pantalla completa" onClick={() => void toggleFullscreen().catch(() => undefined)}><FullscreenIcon /></button><button className="spectrum-close" type="button" onClick={close}>Cerrar</button></div></header><div className="spectrum-stage"><canvas ref={canvas} /></div>{message ? <footer><span className="spectrum-led" />{message}</footer> : null}<div className="visualizer-picker" aria-label="Tipo de analizador">{(Object.keys(visualizers) as VisualizerName[]).map((name) => <button className={name === visualizer ? "selected" : ""} key={name} onClick={() => setVisualizer(name)}>{visualizers[name]}</button>)}</div></section>}</div>;
+  return <div className="spectrum-container">{!open ? <button className="spectrum-trigger" type="button" aria-label="Abrir analizador de espectro" onClick={() => void start()}><WaveIcon /><span>Analizador</span></button> : <section ref={panel} className={`spectrum-panel ${theme}`} aria-label="Analizador de espectro"><header><div className="spectrum-actions">{visualizer === "nowPlaying" ? <div className="marquee-picker" aria-label="Color del cartel LED">{(Object.keys(marqueeColors) as MarqueeColor[]).map((name) => <button className={name === marqueeColor ? "selected" : ""} key={name} onClick={() => setMarqueeColor(name)}>{marqueeColors[name].label}</button>)}</div> : null}<button className="spectrum-fullscreen" type="button" aria-label="Mostrar el analizador a pantalla completa" title="Pantalla completa" onClick={() => void toggleFullscreen().catch(() => undefined)}><FullscreenIcon /></button><button className="spectrum-close" type="button" onClick={close}>Cerrar</button></div></header><div className="spectrum-stage"><canvas ref={canvas} /></div>{message ? <footer><span className="spectrum-led" />{message}</footer> : null}<div className="visualizer-picker" aria-label="Tipo de analizador">{(Object.keys(visualizers) as VisualizerName[]).map((name) => <button className={name === visualizer ? "selected" : ""} key={name} onClick={() => setVisualizer(name)}>{visualizers[name]}</button>)}</div></section>}</div>;
 };
