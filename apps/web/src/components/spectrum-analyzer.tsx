@@ -73,7 +73,7 @@ export const SpectrumAnalyzer = ({ track, album, artist }: { track: string; albu
       node.smoothingTimeConstant = .78;
       node.minDecibels = -88;
       node.maxDecibels = -24;
-      gain.gain.value = 4;
+      gain.gain.value = 8;
       context.createMediaStreamSource(input).connect(gain).connect(node);
       stream.current = input;
       audioContext.current = context;
@@ -113,6 +113,11 @@ export const SpectrumAnalyzer = ({ track, album, artist }: { track: string; albu
       const gap = Math.max(3, width / barCount * .23); const barWidth = (width - gap * (barCount - 1)) / barCount;
       if (analyser.current) analyser.current.getByteFrequencyData(bins);
       if (analyser.current) analyser.current.getByteTimeDomainData(waveform);
+      if (inputGain.current && audioContext.current) {
+        const rms = Math.sqrt(waveform.reduce((total, sample) => total + Math.pow((sample - 128) / 128, 2), 0) / waveform.length);
+        const targetLevel = .22; const currentGain = inputGain.current.gain.value; const targetGain = Math.min(32, Math.max(.8, currentGain * targetLevel / Math.max(rms, .012)));
+        inputGain.current.gain.setTargetAtTime(targetGain, audioContext.current.currentTime, .18);
+      }
       const level = (index: number, count = barCount): number => analyser.current ? bins[Math.min(bins.length - 1, Math.floor(Math.pow(index / count, 1.8) * bins.length))] / 255 : .04;
       const color = (amount: number): string => activeTheme.bars[Math.min(activeTheme.bars.length - 1, Math.floor(amount * activeTheme.bars.length))];
       context.shadowBlur = 14; context.shadowColor = activeTheme.glow;
